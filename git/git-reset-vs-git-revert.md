@@ -1,5 +1,9 @@
 # Git Reset versus Git Revert
 
+<!-- First paragraph is the summary of your TIL -->
+
+I have always forgotten about how these two commands work. Today is the last time.
+
 - `git revert`:
 
 * makes a new commit
@@ -18,6 +22,6 @@
 
 ## References
 
-[Mark Longair's answer about `git reset --hard`](https://stackoverflow.com/a/9530204/9122512)
-[AD7six's answer about `git revert`](https://stackoverflow.com/a/19032678/9122512)
-[Jonathan.Brink's answer about the removal of commit history after using `git reset --hard`](jhttps://stackoverflow.com/a/51863814/9122512)
+- [Mark Longair's answer about `git reset --hard`](https://stackoverflow.com/a/9530204/9122512)
+- [AD7six's answer about `git revert`](https://stackoverflow.com/a/19032678/9122512)
+- [Jonathan.Brink's answer about the removal of commit history after using `git reset --hard`](jhttps://stackoverflow.com/a/51863814/9122512)
