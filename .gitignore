@@ -1,6 +1,7 @@
-
-# python virtual environment
+__pycache__
 .venv
-
-# environment variable
 .env
+.logs
+tils.db
+
+*.d2

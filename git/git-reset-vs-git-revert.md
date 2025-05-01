@@ -1,8 +1,8 @@
 # Git Reset versus Git Revert
 
-<!-- First paragraph is the summary of your TIL -->
+<!-- tl;dr is the summary of your TIL -->
 
-I have always forgotten about how these two commands work. Today is the last time.
+I always forget about how these two commands work.
 
 - `git revert`:
 

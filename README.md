@@ -2,17 +2,17 @@
 
 > Today I Learned
 
-My collection of technical notes gathered daily across different technologies. The second brain system I'm most proud of. Inspired by [simonw/til](https://github.com/simonw/til) and [jbranchaud/til](https://github.com/jbranchaud/til).
+My collection of technical notes gathered daily across different technologies. The second brain system I'm most proud of. Inspired by [simonw/til](https://github.com/simonw/til).
 
-Search these TILs at: https://Silverbullet069.github.io/til
+Search these TILs at: <!-- til url starts --><!-- til url ends -->
 
-<!-- count starts --><!-- count ends --> TILs so far.
+So far, there are <!-- topic count starts --><!-- topic count ends --> different topics and <!-- til count starts --><!-- til count ends --> TILs.
 
 ## Introduction
 
-I have been mentally torn apart when finding answers to how to organize everything I have learned so far.
+I have been torn aparted mentally when search for the answer for the question: **How to record and organize everything I have learned so far**.
 
-My failed attempts when trying to implement a _second brain_:
+My attempts when trying to implement a _second brain_:
 
 **Methodologies**:
 
@@ -23,25 +23,48 @@ My failed attempts when trying to implement a _second brain_:
 
 - [Obsidian](https://obsidian.md)
 
-=> But they all shares two common problems: **Complex hierarchical structure.** and **Those notes will never be re-read**.
+However, they all share common pitfalls:
 
-To my best outcome, I've built a [Silverbullet069/.dotfiles](https://github.com/Silverbullet069/dotfiles) repository. But general documentation and context-specific tweaks are stored together, which isn't my preferred approach. However, it still has its pros: quick look-up.
+- Deeply nested structure. Searching for specific knowledge requires wasting precious time.
+- Overlap between non-code/low-code and code-intensive knowledge.
+- Re-reading occurs rarely, sometimes never.
+- [Learn in Private](https://www.swyx.io/learn-in-private) instead of [Learn in Public](https://www.swyx.io/learn-in-public).
 
-TIL, or Today I Learned, is my newest approach to tackle the problem.
+**TIL**, or _Today I Learned_, is my newest approach to tackle all of the above problems.
 
-## FAQ
+## The learning cycle
 
-_Q: When should I write a TIL note?_
-A: Requirements come up by me to eliminate nitty-gritty thinking and duplication problem:
+I've curated a **FOUR**-step process:
 
-- Applies to a specific problems while building a feature. DO NOT WRITE ABOUT THE FEATURE ITSELF, WE HAVE GITHUB ISSUES FOR IT!
-- Uses in a lot of repositories. Usually optimization tricks for productivity, secutity, reliability, ...
-- Acquired by reading a blog post or multiple references.
-- Requires code snippets. Non-code knowledge are to be put inside Anki decks.
-- Takes a significant amount of time to figure out.
+![the-learning-cycle.svg](the-learning-cycle.svg)
 
-> [!CAUTION]
-> Ignored things that can simply be _Googled_, that's Google's job!
+- **Step 1:** Start with basic tutorial from 3rd-party learning materials. [Roadmap.sh](https://roadmap.sh) is also a great place to start. **Avoid thoroughly reading official documentations until you're familiar with the tool.**
+- **Step 2:** Run in local playground. Set up the development environment, write the code snippets, run the commands you found in Step 1.
+- **Step 3:** Write a TIL. Plug all the separate pieces into ONE grand picture: making cheatsheet (CLI commands, programming language code snippets, ...) to insights (why this feature existed, in which situation do we use it, ...)
+  > This is the hardest step.
+- **Step 4:** Practice in a real project. Remember what you learned, and if you don't, constantly re-check TIL and playground.
+- **Refer to advanced learning materials:** official documentations, senior engineers' blogs, best practices, ...
+
+## Personal Experience
+
+1. **Everything you READ will be forgotten**:
+
+   - You will forget the long and comprehensive documentation page that you read a month ago.
+   - You will forget the interesting blog post from your favorite bloggers that you read three months ago.
+   - You will forget the APIs of your favorite programming languages and their frameworks/libraries that you used six months ago.
+   - You will forget the commands, sub-commands, arguments, options of the CLI utilities you haven't touched for a year.
+
+   => **Unless, you write a TIL**.
+
+1. **You don't need to remember it!**: Do not record anything that can be Googled/AI-generated under 5 seconds
+
+1. **Do not record anything that can be Googled/AI-generated under 5 seconds**: consider breaking that TIL into multiple smaller TILs.
+
+   > However, if the TIL is a single source of truth, or you want to avoid context switching to the fullest, a big TIL is not a problem. You should include a **TL;DR**, a **Cheatsheet** or a **ToC** at the start though.
+
+1. **Blog what you built and what other people built, Record what you learned**: Simon Willison's have two separated platforms for sharing his knowledge: [Weblog](https://simonwillison.net) ([GitHub](https://github.com/simonw/simonwillisonblog)) and [Today I Learned](https://til.simonwillison.net) ([GitHub](https://github.com/simonw/til)). I realized he blogged about his projects, big tech innovations, ... and he wrote TIL for a random thing that he learned to solve a very fine-grained problem.
+
+1. **Always be grateful:** you must include a **## References** section at the bottom of your TIL.
 
 ## Table of Contents
 
