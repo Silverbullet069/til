@@ -96,17 +96,17 @@ We’re a multinational enterprise considering this agreement for our core data 
 
 Terminology overlapped in so many prompt engineering documents, guides, blogs, books, videos, ... I have chosen [Prompt Engineering Guide's "Elements of a Prompt"](https://www.promptingguide.ai/introduction/elements) as the single source of truth (SSOT).
 
-In short, there are **FOUR** prompt elemenets:
+In short, there are **FOUR** prompt elements:
 
-- **Instruction**: a specific task or number of tasks that the model needs to perform on **input data**.
+- **Instructions**: a specific task or number of tasks that the model needs to perform on **input data**.
 - **Context**: external info that can steer the model to better responses (e.g. roleplay, examples, artistic style, tone for a target audience, ...)
 - **Input data/Input text**: the data that needed to be worked on.
 - **Output indicator/Output format**: the structure of the output (e.g. JSON, numbered list, unordered list (bullet points), ...)
   > However, at the time of writing this post, leading AI vendors have baked this element in as a feature. GPT, Claude, Gemini and Mistral offer variants of "structured output" as additional options through their API.
 
-All 4 elements aren't mandatory in a single prompt.
+Some other SSOTs stated that there are only **TWO** prompt elements: **Tnstructions** and **Context**. There is nothing wrong with that, my way of separation is more fine-grained and help tackling a lot of use cases.
 
-Their format depends on the task at hand.
+All 4 elements aren't mandatory in a single prompt. Their format depends on the task at hand.
 
 ## Common use cases that need prompt engineering
 
@@ -120,7 +120,7 @@ Their format depends on the task at hand.
 
 5. Conversation
 
-6. Code Generation
+6. Code Generation/Test Generation/Code Review/Commit Message Generation/PR title and description generation/...
 
 7. Reasoning (latest)
 
@@ -293,30 +293,19 @@ _Best practices:_
 
   > E.g. when working with a specific `npm`/`pip` package, set the `import [PACKAGE_NAME]` statements at the top of the file. Similarly, add `SELECT` for the start of a SQL statement.
 
-### 8. Use AI-powered Code Editors/IDEs for coding
+### 8. Keep your codebase following best practices
 
-_Definition:_ For use cases like coding, AI-powered Code Editors/IDEs can streamline and leverage LLMs in our favors. They provide different ways for engineers to include prompt elements (_instructions_, _context_ and _input data_ ) in a fine-grained manner. They can even directly interact with existing resources with Agent mode.
+_Definition:_ If you're using your codebase as _context_, make sure that your code follows best practices and easy to read, doing so will **guarantee you a better response**. For example:
 
-_Examples:_ [GitHub Copilot Chat in VSCode](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide):
-
-- [Slash commands](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/github-copilot-chat-cheat-sheet#slash-commands-1): avoid writing complex prompts for common scenarios. Simply said, they omit the first step in [1. Start general then get specific](#1-start-general-then-get-specific) when you're writing _instructions_.
-- [Chat variables](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/github-copilot-chat-cheat-sheet#chat-variables): include _input data_ in your prompt.
-- [Chat participants](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/github-copilot-chat-cheat-sheet#chat-participants): include _context_ in your prompt.
-
-### 9. Follow good coding practices
-
-_Definition:_ For use cases like coding and you're using your codebase as _input data_, make sure that your code follows best practices and easy to read. For example:
-
-- Use a consistent code style and patterns.
+- Use a popular and mature tech stack that is likely to have been included in the training data of LLM models up to their training cut-off date.
+- Use a consistent code style and patterns (again, use custom instructions to enforce this for you).
 - Use descriptive names for variables and functions.
 - Comment your code.
 - Structure your code into modular, scoped components.
 - Include unit tests.
 - ...
 
-Doing so will guarantee you a better response.
-
-### 10. Experiment and iterate
+### 9. Experiment and iterate
 
 _Definition:_ Iterate on your prompt and try again. Either you create a new prompt with different _instructions_, _context_, _input data_ and _output format_, or keep the response and request for modification.
 

@@ -62,9 +62,15 @@ I've curated a **FOUR**-step process:
 
    > However, if the TIL is a single source of truth, or you want to avoid context switching to the fullest, a big TIL is not a problem. You should include a **TL;DR**, a **Cheatsheet** or a **ToC** at the start though.
 
-1. **Blog what you built and what other people built, Record what you learned**: Simon Willison's have two separated platforms for sharing his knowledge: [Weblog](https://simonwillison.net) ([GitHub](https://github.com/simonw/simonwillisonblog)) and [Today I Learned](https://til.simonwillison.net) ([GitHub](https://github.com/simonw/til)). I realized he blogged about his projects, big tech innovations, ... and he wrote TIL for a random thing that he learned to solve a very fine-grained problem.
-
 1. **Always be grateful:** you must include a **## References** section at the bottom of your TIL.
+
+## FAQ
+
+_Q: When should I write a TIL note? When should I write a blog rather than a TIL?_
+
+A: **Blog what you built and what other people built, record what you learned**: Simon Willison's have two separated platforms for sharing his knowledge: [Weblog](https://simonwillison.net) ([GitHub](https://github.com/simonw/simonwillisonblog)) and [Today I Learned](https://til.simonwillison.net) ([GitHub](https://github.com/simonw/til)). I realized he blogged about his projects, big tech innovations, ... and he wrote TIL for a random thing that he learned to solve a very fine-grained problem.
+
+---
 
 ## Table of Contents
 

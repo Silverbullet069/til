@@ -1,4 +1,4 @@
-# How you should build a feature?
+# How You Should Build A Feature?
 
 <!-- tl;dr starts -->
 
@@ -18,6 +18,8 @@ _Examples:_
 - [rochacbruno/python-project-template](https://github.com/rochacbruno/python-project-template/)
 
 These GitHub Repository templates whose dynamic content should be able to be populated by [GitHub Actions](https://simonwillison.net/2021/Aug/28/dynamic-github-repository-templates/).
+
+Using VSCode's Code Snippet feature to add reusable code snippets. I recommended you extract from the cheatsheet of the tech of your stack.
 
 ### Step 2: Create an issue and research the problem
 
@@ -119,51 +121,51 @@ _**SIX** pros and practices:_
 1. **Reversible:** Commits should be reversible without introducing breakage.
 1. **Linear commit history:** Commits follow a straight line without any merge commits or branching paths.
 
-   ```py
-   # create a feature branch
-   git checkout -b feature
+```sh
+# create a feature branch
+git checkout -b feature
 
-   # make changes and commit
-   echo "New shiny feature" > feature.txt
-   git add feature.txt
-   git commit -m "feat: add new feature"
-   # more commit here ...
+# make changes and commit
+echo "New shiny feature" > feature.txt
+git add feature.txt
+git commit -m "feat: add new feature"
+# more commit here ...
 
-   # meanwhile, main has new commits.
-   # main:    A---B---C
-   #           \
-   # feature:   D---E
+# meanwhile, main has new commits.
+# main:    A---B---C
+#           \
+# feature:   D---E
 
-   # local main branch reflects remote main branch
-   git checkout main
-   git pull
+# local main branch reflects remote main branch
+git checkout main
+git pull
 
-   # rebase local feature branch according to local main branch
-   git checkout feature
-   git rebase main
+# rebase local feature branch according to local main branch
+git checkout feature
+git rebase main
 
-   # git rebase performs these steps
-   # 1. identify the common ancestor of feature and main branch => commit A
-   # 2. save the feature branch's commits (D, E) as temporary patches.
-   # 3. reset feature branch to match main (A, B, C)
-   # 4. replay feature branch commit on top of the new feature branch, now called D' and E'
+# git rebase performs these steps
+# 1. identify the common ancestor of feature and main branch => commit A
+# 2. save the feature branch's commits (D, E) as temporary patches.
+# 3. reset feature branch to match main (A, B, C)
+# 4. replay feature branch commit on top of the new feature branch, now called D' and E'
 
-   # Result
-   # main:    A---B---C
-   #                   \
-   # feature:           D'---E'
+# Result
+# main:    A---B---C
+#                   \
+# feature:           D'---E'
 
-   # the rebased commits receive new SHA hashes.
-   # the commit dates of rebased commits are updated to the current time.
+# the rebased commits receive new SHA hashes.
+# the commit dates of rebased commits are updated to the current time.
 
-   # NOTE: if the same file were modified in both branches, there might be merge conflicts during rebase.
-   # NOTE #2: Once feature branch has been pushed to a remote repository, rebasing can cause issues for collaborators, because it rewrites existing history.
-   git push --force-with-lease
+# NOTE: if the same file were modified in both branches, there might be merge conflicts during rebase.
+# NOTE #2: Once feature branch has been pushed to a remote repository, rebasing can cause issues for collaborators, because it rewrites existing history.
+git push --force-with-lease
 
-   # reflects local main branch with local feature branch
-   git checkout main
-   git merge feature --ff-only # fast-forward merge, no merge commit created
-   ```
+# reflects local main branch with local feature branch
+git checkout main
+git merge feature --ff-only # fast-forward merge, no merge commit created
+```
 
 _**THREE** code audit practices:_
 

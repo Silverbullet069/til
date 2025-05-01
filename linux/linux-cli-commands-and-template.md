@@ -1,21 +1,21 @@
-# Some design patterns I've found when reading code on GitHub
+# Linux CLI templates
 
 <!-- tl;dr starts -->
 
-There are a lot of nice design patterns that I could use to write a more professional bash script. Note that only simple CLI utilities should be using these, for more complex utilities, use dedicated lib/framework like Python Click.
+There are a lot of useful CLI commands and templates that I would like to archive for later use. Later, it's better to add the CLI commands into [`tealdeer-rs/tealdeer`](https://github.com/tealdeer-rs/tealdeer) or use Fish history or Bash history `tac ~/.bash_history | grep "pattern" | less`
 
 <!-- tl;dr ends -->
 
-## `uniq`
+## Differences between `curl -o [FILE]` and `curl > [FILE]`:
 
-`-u`: unique lines only (default behavior is only adjacent matching lines are merged to achieve uniqueness)
-`-i`: ignore case when comparing
+| Features                                 | `curl -o [FILE]` | `curl > [FILE]` |
+| ---------------------------------------- | ---------------- | --------------- |
+| Built-in?                                | Yes              | No, shell       |
+| Create parent directories?               | Yes              | No              |
+| Retain file's permission and timestamps? | Yes              | No, umask       |
+| Clean leftover files if download failed? | Yes              | No              |
 
-```sh
-cat | uniq -ui
-```
-
-## `find` and `xargs`
+## Run a command against a set of files
 
 `find -print0` outputs the names of found files separated by ASCII NULL character, instead of newlines. This is useful when handling filenames that contain spaces, newlines, ... whitespaces in general.
 

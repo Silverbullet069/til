@@ -1,0 +1,11 @@
+{
+  "markdown.preview.scrollPreviewWithEditor": false,
+  "markdown.preview.scrollEditorWithPreview": false,
+  // CAUTION: DO NOT USE "file" or "language" property.
+  // CAUTION: They aren't appeared in official documentation and I can't confirm if they're working
+  "github.copilot.chat.reviewSelection.instructions": [
+    {
+      "text": "Ignore code blocks. Check grammar. Improve technical word choice.Replace 'you' with 'the engineer' and 'we' with 'the engineers'."
+    }
+  ],
+}

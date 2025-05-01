@@ -6,6 +6,8 @@ D2 is my most favorite diagraming language. It's much more easier to write and r
 
 <!-- tl;dr ends -->
 
+## Template
+
 ```d2
 vars: {
   d2-config: {
