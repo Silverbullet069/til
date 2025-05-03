@@ -652,12 +652,7 @@ _Limitations:_
 
 ### 2. Role Prompting
 
-_Definition:_ Role Prompting is the use of System Prompt to assign a role to LLM's Assistant.
-
-> The difference between a System Prompt and a User Prompt:
->
-> - System Prompt can't be overriden by User Prompt.
-> - User Prompt, however, can be overriden by subsequent User Prompts.
+_Definition:_ Role Prompting is the use of System Prompt to assign a role to LLM's Assistant. System Prompt is added automatically at the start of the chat and can't be overriden by User Prompt.
 
 _Pros:_
 
@@ -686,6 +681,14 @@ _Examples:_
 - [Anthropic's System Prompts Example: Legal contract analysis:](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts#legal-contract-analysis-with-role-prompting)
 
 - [Anthropic's System Prompts Example: Financial analysis](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts#financial-analysis-with-role-prompting)
+
+- [PatrictJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules)
+
+  > This project needs serious reorganizing. There are so many system prompts with different tech stack and they overlap each other. My recommendation is to only maintain library/framework-specific guidelines, a simple base, then user will tweak it to their needs.
+
+- [Anthropic's System Prompts for Claude.ai and mobile apps](https://docs.anthropic.com/en/release-notes/system-prompts)
+
+- GitHub Copilot's System Prompts for Web UI. GitHub Copilot's Personal Instruction for Web UI.
 
 ### 3. Prefilling Responses
 
