@@ -72,6 +72,7 @@ jsconfig.json
 ```js
 // plugins
 import eleventyRssPlugin from "@11ty/eleventy-plugin-rss";
+import { I18nPlugin } from "@11ty/eleventy";
 
 // internal modules
 import { sortByDisplayOrder } from "./src/utils/sort.js";
@@ -87,6 +88,24 @@ export default function (eleventyConfig) {
 
   // Plugins
   eleventyConfig.addPlugin(eleventyRssPlugin);
+  eleventyConfig.addPlugin(I18nPlugin, {
+    // any valid BCP 47-compatible language tag is supported
+    defaultLanguage: "", // Required, this site uses "en"
+
+    // Rename the default universal filter names
+    filters: {
+      // transform a URL with the current page’s locale code
+      url: "locale_url",
+
+      // find the other localized content for a specific input file
+      links: "locale_links",
+    },
+
+    // When to throw errors for missing localized content files
+    errorMode: "strict", // throw an error if content is missing at /en/slug
+    // errorMode: "allow-fallback", // only throw an error when the content is missing at both /en/slug and /slug
+    // errorMode: "never", // don’t throw errors for missing content
+  });
 
   // cre: https://www.11ty.dev/docs/languages/nunjucks/#nunjucks-environment-options
   eleventyConfig.setNunjucksEnvironmentOptions({
@@ -164,7 +183,7 @@ export default function (eleventyConfig) {
 
 Data is merged from **SIX** sources of data before the template is rendered. 11ty called this behavior **Data Cascade**.
 
-These sources of data are ordered **from lowest priority to highest**.
+These sources of data here are listed in the order **from lowest priority to highest**.
 
 > [!CAUTION]
 >
@@ -173,7 +192,7 @@ These sources of data are ordered **from lowest priority to highest**.
 
 ### 1. Global Data Files
 
-They are files whose data is exposed to every template in 11ty project. The most common file type is JSON.
+They are files whose data is exposed to every template in 11ty project. The most common file type is `.json`.
 
 ```txt
 // NOTE: refer to configuration file above
@@ -267,6 +286,7 @@ Next data source is front matter data in Layout Template files, commonly specifi
 
 ```html
 ---
+<!-- src/_includes/layout/base.html -->
 title: My Rad Blog
 ---
 
@@ -285,7 +305,7 @@ title: My Rad Blog
 </html>
 ```
 
-**NOTE:** IMO, Front Matter Data in Layouts is best avoided for better maintainability. The fewer data sources there are, the simpler the application will be.
+> **NOTE:** IMO, Front Matter Data in Layouts is best avoided for better maintainability. The fewer data sources there are, the simpler the application will be.
 
 ### 4. Template and Directory Specific Data Files (or Template/Directory Data Files)
 
@@ -297,18 +317,18 @@ Example: template: `posts/subdir/my-first-blog-post.md`
 
 - Highest: Template's front matter data
 - High: Template Data Files
-  - `posts/subdir/my-first-blog-post.11tydata.js` (highest, among the files) (best practice)
+  - `posts/subdir/my-first-blog-post.11tydata.js` (highest, among the files)
   - `posts/subdir/my-first-blog-post.11tydata.json`
-  - `posts/subdir/my-first-blog-post.json`
+  - `posts/subdir/my-first-blog-post.json` (best practice)
 - Normal: Directory Data Files
-  - `posts/subdir/subdir.11tydata.js` (highest, among the files) (best practice)
+  - `posts/subdir/subdir.11tydata.js` (highest, among the files)
   - `posts/subdir/subdir.11tydata.json`
-  - `posts/subdir/subdir.json`
+  - `posts/subdir/subdir.json` (best practice)
 - Low: Parent Directory Data Files
 
-  - `posts/posts.11tydata.js` (highest, among the files) (best practice)
+  - `posts/posts.11tydata.js` (highest, among the files)
   - `posts/posts.11tydata.json`
-  - `posts/posts.json`
+  - `posts/posts.json` (best practice)
 
     ```jsonc
     // Apply a default layout and permalink to multiple templates
@@ -320,9 +340,9 @@ Example: template: `posts/subdir/my-first-blog-post.md`
 
 - Lowest: Global Data Files in `_data/*`
 
-> The name of the data files must match either the name of the template or the name of the directory it resides within. However, this behavior can be customized via ` eleventyConfig.setDataFileBaseName("index");` API.
+The name of the data files must match either the name of the template or the name of the directory it resides within. However, this behavior can be customized via ` eleventyConfig.setDataFileBaseName("index");` API.
 
-> It doesn't have to be `*.11tydata.*`, you can customize it via `eleventyConfig.setDataFileSuffixes()` API. But their priority will be lower than their JS/JSON counterparts.
+It doesn't have to be `*.11tydata.*`, you can customize it via `eleventyConfig.setDataFileSuffixes()` API. But their priority will be lower than their JS/JSON counterparts.
 
 ### 5. Front Matter Data in Leaf Template File
 
@@ -345,6 +365,15 @@ eleventyComputed:   # can use and set variable and shortcodes for other front ma
 This is the end of the Data Cascade.
 
 <!-- TODO: there is limited use for it so I will skip it for now. -->
+
+## Supplied Data
+
+- `pkg`: the local project's `package.json` data.
+- `pagination`: you can
+  using the `pagination` key in front matter, this divides data into chunks for multiple output pages.
+- `collections`: lists of all of your content, grouped by tags. Use dot notation (i.e. `collections.featuredWork`).
+- `page`: has information about the current page.
+- `eleventy`: contains 11ty-specific data from env vars.
 
 ## Permalinks
 
@@ -384,9 +413,9 @@ permalink: "/{{ page.date | date: '%Y/%m/%d' }}/index.html"
 Change permalinks for one directory:
 
 ```js
-// context: a directory of content templates, like `recipes/cookies.md`, `recipes/soup.md`, ... etc 50 more, either:
+// context: a directory that contains multiple content templates, like `recipes/cookies.md`, `recipes/soup.md`, ... etc 50 more, either:
 // - manually set a permalink in the fronmatter of each recipe (bad idea!)
-// - dynamically generate the permalink inside a Directory Data File: `recipes.11tydata.js`
+// - dynamically generate the permalink inside a JS Directory Data File `recipes.11tydata.js`
 export default {
   // the order of Data Cascade should have not made the `title:` field available in the Directory Data File
   // `permalink` is an exception of implied Computed Data, therefore have `title` available
@@ -403,6 +432,8 @@ Mapping one URL to Multiple Files for Internationalization (a.k.a i18n): Officia
 ### RSS
 
 ### Internationalization (I18n)
+
+This plugin provides **TWO** universal filters and **ONE** addition to `page` variable.
 
 ### Image
 
@@ -428,9 +459,3 @@ Mapping one URL to Multiple Files for Internationalization (a.k.a i18n): Officia
     - `date: git Created`: resolve to the file's first git commit.
     - `date: "2025-01-01"`: enclosed double quotes.
     - `date: 2025-01-01`: no double quotes.
-- There are a few globally supplied data values that can be used inside template files:
-  - `pkg`: the local project's `package.json` data.
-  - `pagination`: using the `pagination` key in front matter, this divides data into chunks for multiple output pages.
-  - `collections`: lists of all of your content, grouped by tags. Use dot notation (i.e. `collections.featuredWork`).
-  - `page`: has information about the current page.
-  - `eleventy`: contains 11ty-specific data from env vars.

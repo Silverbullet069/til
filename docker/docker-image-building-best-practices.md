@@ -780,25 +780,20 @@ CMD ["param1", "param2"]
 
 - Set and unset environment variable must stay on the same `RUN` instruction, since each instruction creates an immutable layer that can't be changed even in future layer.
 
-### ENTRYPOINT
+### [ENTRYPOINT](https://docs.docker.com/reference/dockerfile/#entrypoint)
 
 Set the image's main command, `CMD` only specifies default flags (argument and options)
 
 Used in combination with a helper script if the starting process requires more than 1 step.
 
-### VOLUME
+### [VOLUME](https://docs.docker.com/reference/dockerfile/#volume)
 
 Expose database storage, configuration storage, files and folders created by Docker containers.
 
-Keep in mind that you can't mount a host directory from within the Dockerfile. The host directory is declared at container run-time since it can't be guaranteed to be available on all hosts.
+_Q: What is the benefits of specifying `VOLUME` instruction in `Dockerfile` when user can create whatever volumes that want?_
+A: It creates anonymous volume, fully managed by Docker. It's also a form of docs indicating users that certain files and directories are intended for persistency.
 
-Q: What is the benefits of specifying `VOLUME` instruction in `Dockerfile` when user can create whatever volumes that want?
-A: It creates an anonymous volume.
-
-- Documentation: it acts as a form of documentation, indicates to users that certains directories and files are intended for external storage.
-- Data persistence: maintaining data across containers restarts or updates. (except `docker run --rm`)
-
-Read later: https://docs.docker.com/reference/dockerfile/#volume
+You can't mount a host directory from within the Dockerfile since host directory meant to be available during container run-time and not during build.
 
 ### USER
 

@@ -213,7 +213,7 @@ However, there are still a few remaining problems for containerized stack to rea
 
 We need a dedicated platform that integrates all container runtimes under a unified framework and exposes an intuitive interface that's sufficiently abstracted, allowing engineers to focus entirely on deploying their applications without needing to understand the underlying infrastructure.
 
-## Docker
+## Docker Overview
 
 **Docker**, is the most popular container management platform. **Docker Engine**, the software behind the magic, acts as a client-server application with the following components:
 
@@ -240,50 +240,117 @@ Docker Desktop (GUI)
                       └── Linux kernel features (namespaces, cgroups, etc.)
 ```
 
-### Data Persistence
+## Docker Data Persistency Mechanisms
 
-By default, the storage within a Docker container is _ephemeral_, meaning any creation, modification and deletion made inside a container will only persist until the container is removed. Once removed, all changes are lost.
+Storage within Docker containers is _ephemeral_ (or non-persistency) by default since they are designed to be _stateless_. Statelessness has both pros and cons:
 
-Docker containers are designed to be _stateless_. Statelessness enables fast and consistent deployment of applications across different environments.
+- Pro: enables fast and consistent deployment of applications across different environments.
+- Con: Accessing and modifying files and directories from the host system within the container can be very complex.
 
-However, it poses a great challenges when you want to persist the data, especially when you want everything stay the same after you restart the container or recreate the container from an updated version of the container image.
+There are **TWO** features regarding **THREE** data persistency mechanisms:
 
-Docker introduces **Volume Mounts** and **Bind Mounts**, the technology behinds critical features: **Persistency** - data stay even when containers are removed and **Data sharing** - multiple containers can share the same volume.
+- **Data Persistency**: data stay even when containers are removed.
+- **Data Sharing between containers**: multiple containers can share the same volume.
 
-#### Volume Mounts
+<!-- prettier-ignore -->
+| Criteria | Volume Mounts | Bind Mounts |
+| --- | --- | --- |
+| **Storage** | High level: Anonymous volume managed by Docker.<br>Low-level: data is stored in `/var/lib/docker/volumes/` | Host's files and directories |
+| **Data accessibility** | Hard | Easy |
+| **Security** | Secure | Less secure due to host filesystem acts as intermediary. |
+| **When?** | Build + Run | Run |
+| **Platform independence in settings** | Yes | No, depends on the host machine's directory structure; settings may not be reusable across Linux and Windows |
+| **High performance I/O** | Most optimized since data is managed entirely by Docker | Relies on host's filesystem performance |
+| **Portability** | Easy to migrate and backup | More caveats when migrating |
 
-_Pros and practices:_
+### What are anonymous volumes?
 
-- **Not easy to access from host**: volumes are managed by Docker, stored in Docker's storage directory: `/var/lib/docker/volumes/`.
-- **Security**: can be more safely shared among multiple containers, unlike bind mounts who have host system as intermediary.
-- **Platform-independent**: works on both Linux and Windows container (nobody use Windows container by the way).
-- **High-performace I/O**: managed entirely by Docker, thus optimized.
-- **Pre-populating newly created volume**: new volumes can have their content pre-populated by a container or build.
-- **Easy to migrate and backup**.
+- Don't have a name, but still given a uniquely identifiable ID within the host system.
+- Without `--rm` flag, it's persisted even after containers are removed.
+- Aren't shared by default, they must be explicitly mounted using their ID which can only be obtained **AFTER** the container has been run.
 
-_Mounting a volume over existing data:_
+### Restrict write access to mounted files and directories inside container
 
-- If a non-empty volume is mounted into a directory in the container, in which files and directories exists, the pre-existing files are obscured (not lost!).
-- If an empty volume is mounted into a directory in the container, in which files and directories exists, the pre-existing files are copied into the volume (by default). Use `volume-nocopy` in `--mount` option to prevent this behavior.
+By default, bind mounts give container **write** access to host's mounted files and directories.
 
-_Named and anonymous volume:_
+=> `--mount readonly` option or `-v /path/to/host/dir:/path/to/container/dir:ro` option can prevent the container from writing to the mount.
 
-- Anonymous volumes are volumes without a name, but still given a uniquely identifiable ID within the host system.
-- Anonymous volumes are persisted even after containers are removed, **unless** a `--rm` flag is used when creating the container.
-- Multiple containers creation will results in multiple anonymous volumes creation.
-- Anonymous volumes aren't shared by default, they must be explicitly mounted using their ID (which is AFTER the container has been run).
+### What if the host system's directory occupied by existing data and get bind mounted into a directory in which files and directories exist?
 
-_Use cases:_
+- If a non-empty volume is mounted into a directory in the container, in which files and directories exists, **the pre-existing files are obscured (not lost !)**.
+- If an empty volume is mounted into a directory in the container, in which files and directories exists, the **pre-existing files are copied into the volume**. To prevent this behavior, specify `--mount volume-nocopy` option.
 
-- **Database persistence**: Storing database files (like MySQL, PostgreSQL, MongoDB) so data persists across container restarts or replacements.
-- **Application data**: Maintaining application state, user-generated content, or configuration settings that need to persist.
-- **Shared content**: Sharing data between multiple containers that need access to the same files (like multiple web servers accessing the same content).
-- **Log storage**: Centralizing log files from containers to ensure they aren't lost when containers are removed, making them accessible for monitoring tools.
-- **Cache storage**: Persisting application cache data across container restarts to improve performance.
+### User ID mapping between host system and containers
+
+**NOTE:** This behavior can only be found when running **Rootless Docker**.
 
 ```sh
+docker info | grep -qi "rootless"
+# exit status 0
+
+docker run --rm alpine:latest sh -c 'cat /proc/self/uid_map'
+
+# Output
+#       0       1000          1
+#       1     524288      65536
+```
+
+Each line has three columns:
+
+- Container UID: User ID inside the container.
+- Host UID: Corresponding user ID on the host system.
+- Range: Number of sequential IDs in this mapping.
+
+The output shows that:
+
+- **Root User Mapping:** container's root user (UID 0) maps to host UID 1000 and only 1 ID is mapped.
+- **Non-Root User Mapping:** container UIDs starting from 1 map to host UIDs starting at 524288, this mapping covers 65536 possible user IDs.
+
+**Security implications:** Container root doesn't have host root privileges, so even if an attacker gets root in the container, they only have user permissions on host system.
+
+_Cons:_ If container is run as non-root user (i.e. `docker run -u 1000:1000 ...`), due to non-root user mapping logic, container's user won't even have write access to host user files and directories (as shown [here](https://www.docker.com/blog/understanding-the-docker-user-instruction/))
+
+=> **Solution:** either run container as root (not recommended), or create a dedicated directory for container user (e.g. when I set up bind mounts for Docker application whose base image is from Linuxserver, on host system they're owned by a user whose ID is `525287`)
+
+### Configure the SELinux label
+
+If your OS use SELinux (like my Fedora KDe 41), adding `:z` or `:Z` value in `--volume` option can modify the SELinux label of the host file or directory being mounted into the container:
+
+- `:z` - bind mount content is shared among multiple containers.
+- `:Z` - bind mount content is private and unshared.
+
+It's not possible to modify the SELinux label using `--mount` option.
+
+**NOTE**: Use with extreme cautions. Its effect can spread outside the scope of Docker. Bind-mounting a system directory (i.e. `/home`, `/usr`, ...) with `Z` option renders the host system inoperable.
+
+### Use cases
+
+_Volume mounts:_
+
+1.  **Database**: e.g. `/var/lib/mysql` for MySQL.
+1.  **Application state**: configuration settings, user-generated content.
+1.  **Cache storage**: persist cache data across container restarts to improve performance.
+1.  **Shared content**: sharing data between multiple containers that need access to the same files (e.g. my Servarr stack).
+1.  **Log storage**: Centralizing log files from containers to ensure they aren't lost when containers are removed, making them accessible for monitoring tools.
+
+_Bind mounts:_
+
+1. Every volume mounts' use cases.
+
+1. **Hot Reloading:** mounted source code into a Docker container that acts as development environment. In short, code in host system, and run it in container.
+
+1. Run container acted as executable against files on host system.
+
+1. Sharing configuration files from the host machine to containers. Docker provides DNS resolution to containers by default, by mounting `/etc/resolv.conf` from host machine into each container.
+
+### Examples
+
+```sh
+# ======================================================================= #
+# VOLUME MOUNTS                                                           #
+# ======================================================================= #
 # -v option can automatically create volume if it hasn't been created first
-# however, the same doesn't apply for --mount option
+# --mount option not supported
 docker volume create demo-log-data
 
 docker run --name=demo-volume --rm -d -p 80:80 -v demo-log-data:/logs docker/welcome-to-docker
@@ -294,49 +361,10 @@ docker exec -it demo-volume /bin/sh
 echo "abcdefghijklkmn" > /logs/test.txt
 
 sudo du -h $(docker volume inspect demo-log-data | jq -r .[].Mountpoint)
-```
 
-#### Bind Mounts
-
-_Pros and practices:_
-
-- **Easy to access from host**: unlike volume mounts that are managed by Docker, it's easy to access files and directories from the host.
-- **Security**: bind mounts have **write** access to mounted files and directories on the host by default. Use `readonly` for `--mount` option or `:ro` for `--volume` option to prevent the container from writing to the mount.
-- **Platform-dependent**: bind mounts rely on the host machine's filesystem having a specific directory structure available, resulting in more caveats when migrating.
-- **Performance**: relies on host filesystem.
-
-_Files ownership_:
-
-If you have configured `docker` running with root privileges (check by running `docker info | grep -i "rootless"`), all operations on the container side are done as root, e.g. running `whoami` outputs `root`. Newly created files have `root` ownership, even on the host system side.
-
-There are ways to get around this, one of them is specifying the user ID when running the container:
-
-```sh
-docker run --name=demo-volume --rm -p 80:80 -u 1000:1000 --mount type=bind,src=./logs,dst=/logs docker/welcome-to-docker
-```
-
-However, most of the time this will fail since a container needs to run instructions defined in its container image, and if there is at least one instruction requiring `root` privileges, the running process will be terminated. Check the logs (by omitting the `-d` option) to determine if this situation has occurred.
-
-_Configure the SELinux label:_
-
-If your OS use SELinux (like my Fedora KDe 41), adding `:z` or `:Z` value in `--volume` option can modify the SELinux label of the host file or directory being mounted into the container:
-
-- `:z` - bind mount content is shared among multiple containers.
-- `:Z` - bind mount content is private and unshared.
-
-It's not possible to modify the SELinux label using `--mount` option.
-
-> **NOTE**: Use with extreme cautions. Its effect can spread outside the scope of Docker. Bind-mounting a system directory (i.e. `/home`, `/usr`, ...) with `Z` option renders the host system inoperable.
-
-_Use cases:_
-
-1. Sharing source code/build artifacts between a development environment on the Docker host and a container. You can code in one place, and reflect the state in another place, just like when I'm developing my dad's website.
-
-1. Creating/Generating files in a container and persist the files onto the host's filesystem. Application settings that you've spent hours to tweak are saved.
-
-1. Sharing configuration files from the host machine to containers. Docker provides DNS resolution to containers by default, by mounting `/etc/resolv.conf` from host machine into each container.
-
-```sh
+# ======================================================================= #
+# BIND MOUNTS                                                             #
+# ======================================================================= #
 mkdir logs
 docker run --name=demo-volume --rm -d -p 80:80 --mount type=bind,src=./logs,dst=/logs docker/welcome-to-docker
 
@@ -348,27 +376,31 @@ ls -l logs
 # -rw-r--r--. 1 root            root            10 Apr  4 11:19 test.txt
 ```
 
-### Containerized Database
-
 ```sh
-# run a local containerized database
-# -v option persist database data
+# Containerized Database
+
 docker run \
   --rm \
-  -d \
   --name=demo-mysql \
-  -u $(id -u):$(id -g) \
+  -d \
+  -u $(id -u):$(id -g) \  # Run as arbitrary user, usually 1000:1000
   -p 3307:3306 \
   --network demo-network \
   -e MYSQL_ROOT_PASSWORD=my-secret-pw \
+  # utilize Docker secret to pass sensitive information
+  # IMPORTANT: /run/secrets/mysql-root lives inside container, not host system
+  # -e MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql-root \
   -e MYSQL_DATABASE=mydb \
-  -v demo-mysql-volume:/var/lib/mysql \
+  -v demo-mysql-volume:/var/lib/mysql \     # bind mounts
+  # -v ./mysql-data:/var/lib/mysql \        # volume mounts
   mysql:latest
 
-# Access the shell of a containerized database
+docker run --name demo-mysql  -d mysql:latest
+
+# Access the shell of the database CLI
 docker exec -it demo-mysql mysql -u root -p
 # or
-docker exec -it demo-mysql bash
+docker exec -it demo-mysql /bin/bash
 mysql -u root -p
 
 # Connect to a containerized database from host system
@@ -429,6 +461,7 @@ services:
 
 volumes:
   my-db-volume:
+# IMPORTANT: Other services that depends on `db` services must specified `depends_on:` field to prevent retrying.
 ```
 
 According to [the documentation on Official Docker Image for MySQL on DockerHub](https://hub.docker.com/_/mysql), files with extension `.sh`, `.sql` and `.sql.gz` that are found in `/docker-entrypoint-initdb.d` will be executed in alphabetical order. By doing so, it's easy to mount a SQL dump into that directory and build a custom image with pre-populated data.
@@ -479,18 +512,6 @@ docker run --name demo-mysql -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:latest
 
 These environment variables can be referred in `docker exec` command.
 
-**Docker secrets:** A list of custom environment variables with `_FILE` suffix whose value is the path to the file IN THE CONTAINER that contains the sensitive information
-
-```sh
-docker run --name demo-mysql -e MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql-root -d mysql:latest
-```
-
-**Data persistent:** Either volume mounts or bind mounts. Consider the pros and cons of each solution.
-
-**No connection until MySQL init completes**: Setup a connect-retry loop before the MySQL service starts.
-
-**Running as an arbitrary user**: `-u 1000:1000` option.
-
 **Create database dumps and restore data from dump files:**
 
 ```sh
@@ -500,7 +521,7 @@ docker exec demo-mysql sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_RO
 docker exec -i demo-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' < /some/path/on/your/host/all-database.sql
 ```
 
-### Building Container Images
+### Building Container Images by Docker Buildx
 
 To build a container image, engineers need to write **Dockerfile** - a text document that contains a list of instructions used by Docker Engine (its plugin, Docker Buildx, to be precise) to build an image.
 
@@ -560,202 +581,6 @@ docker image history my-custom-mysql
 # <missing>      2 months ago   ADD oraclelinux-9-slim-amd64-rootfs.tar.xz /…   113MB     buildkit.dockerfile.v0
 ```
 
-### Image Building Best Practices
-
-There are **ELEVEN** best practices for image building.
-
-#### 1. Use multi-stage builds
-
-_Definition:_ Use multiple `FROM` statements in a Dockerfile. Each `FROM` instruction can use a different base image, and each begins a new stage of the build.
-
-By selectively copying artifacts from one stage to another and leaving behind unnecessary components, you can achieve **FOUR** key benefits:
-
-- **Separation of concerns**: Dockerfile is more organized, easy to maintain.
-- **Reduce image size**: final stage ALWAYS exclude unnecessary build tools.
-- **Better security**: less tools, less files => less attack surface.
-- **Cache utilization**: more reusable stages => less cache invalidation.
-
-```Dockerfile
-# syntax=docker/dockerfile:1
-
-# name your stages
-FROM golang:latest AS build
-WORKDIR /app
-COPY <<EOF ./main.go
-package main
-
-import "fmt"
-
-func main() {
-  fmt.Println("hello, world")
-}
-EOF
-RUN go build -o /bin/hello ./main.go
-
-# the most lightweight container image
-FROM scratch
-
-# --from=0 is the first `FROM` instruction
-#COPY --from=0 /bin/hello /bin/hello
-# better approach: --from=name
-COPY --from=build /bin/hello /bin/hello
-# external image as a stage
-# by doing so, you always have the most up-to-date configuration file
-#COPY --from=nginx:latest /etc/nginx/nginx.conf /nginx.conf
-CMD ["/bin/hello"]
-```
-
-> **NOTE:** Only transfer binaries without external dependencies. I've tried to copy `/bin/echo` from `alpine:latest` to `scratch` and `/bin/echo` can't be run from `scratch`.
-
-```sh
-docker build -t hello .
-docker images hello
-# output
-# hello       latest      56fe838a1a1b   19 seconds ago   2.2MB
-
-docker image history hello
-# IMAGE          CREATED         CREATED BY                              SIZE      COMMENT
-# 56fe838a1a1b   4 minutes ago   CMD ["/bin/hello"]                      0B        buildkit.dockerfile.v0
-# <missing>      4 minutes ago   COPY /bin/hello /bin/hello # buildkit   2.2MB     buildkit.dockerfile.v0
-```
-
-Code written in compiled programming languages (C, C++, Go, Rust) can be compiled in one stage and then the compiled binaries can be copied into a smaller runtime image.
-
-Code written in interpreted languages (JS, TS, Ruby, ...) can be built and minified in one stage using build tools (Vite, Webpack, Next.js Compiler, etc.) and then the final files can be copied into a smaller runtime image.
-
-#### 2. Stop at a target build stage
-
-Sometimes you don't need the output of the final stage, maybe you need the output of the first stage, second stage, ...
-
-Usually engineers make each stage reflects the environment that it's gonna be deployed:
-
-- `build` stage => engineers do manual debugging.
-- `debug` stage => debug using debug tools.
-- `testing` stage => automation testing tool + synthetic test data
-- `production` stage => real data + strip off unused files.
-
-```sh
-docker build --target build -t hello-build .
-```
-
-#### 3. Pick up a previous stage where it left off
-
-```Dockerfile
-# syntax=docker/dockerfile:1
-
-FROM alpine:latest AS builder
-RUN apk --no-cache add build-base
-
-FROM builder AS build1
-COPY source1.cpp source.cpp
-RUN g++ -o /binary source.cpp
-
-FROM builder as build2
-COPY source2.cpp source.cpp
-RUN g++ -o /binary source.cpp
-```
-
-#### 4. Reducing Image Size
-
-**Avoid unnecessary files.** For example, when building images derived from Debian/Ubuntu-based Docker images that use `apt` package manager:
-
-- When running `apt-get update` command, `apt` downloads package lists from repositories to `/var/lib/apt/lists/`, these files are only needed during the package installation process.
-- After the packages have been installed with `apt-get install`, those package lists are no longer needed for the running container.
-
-```Dockerfile
-# ...
-RUN apt-get update && apt-get install -y extra-runtime-dependencies && rm -rf /var/lib/apt/lists/*
-# for Official Debian/Ubuntu images, apt-get clean is run automatically
-# ...
-
-```
-
-Reviews your `COPY`, `RUN` and `ADD` instructions. If you spot unnecessary files and directories, write a `.dockerignore` file to exclude all of them. It has the same syntax as `.gitignore`.
-
-Q: Why don't people just install then remove instantly?
-A: Whenever a layer is created, it's stored in cache. Even if users remove unnecessary files and directories in subsequent layers, they still exist in the previous layers.
-
-#### 5. Combining command
-
-You can minimize the number of layers by combining commands using `&&`.
-
-#### 6. Choose the right base image and right use cases
-
-Right "base":
-
-- Docker Official Images.
-- Docker Verified Publisher.
-- Docker-Sponsored Open Source.
-
-Right "use cases": 1 for building, 1 for testing, 1 for production.
-
-#### 7. Create ephemeral containers
-
-Containers that are easy to be stopped and destroyed, rebuilt and replaced with minimum configuration
-
-#### 8. Decouple applications
-
-Don't try to put 2 or more applications into a single image, only put 1 application per image.
-
-#### 9. Sort multi-line arguments
-
-Avoid duplication of packages, easier to maintain.
-
-```Dockerfile
-# Cre: https://github.com/docker-library/buildpack-deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  bzr \
-  cvs \
-  git \
-  mercurial \
-  subversion \
-  && rm -rf /var/lib/apt/lists/*
-```
-
-#### 10. Automating the building and testing process
-
-When there is a change in version control, use a CI/CD platform (e.g. GitHub Actions) to update (build, tag your Docker image and test it).
-
-#### 11. Maintain dependency on base image
-
-For images that require the latest version of their base image, you must bypass the cache entirely:
-
-```sh
-docker build --no-cache ...
-```
-
-Docker caches the results of each instruction. Caches reduces build time and minimizing bandwidth usage. To minimize cache miss, you must understand when cache invalidation triggers:
-
-- Changes to files copied with COPY or ADD instructions.
-- Changes to RUN instructions.
-
-=> The layers that're the results of those instructions will be invalidated and the same applied to all subsequent layers.
-
-For applications that required maximum reliability, refrain using `:latest` tag. Instead, pin base image version by specifying `@[digest]` tag.
-
-=> Downside: requires maintainer to lookup the digest value tediously, also opting out of automated security patches.
-
-=> Recommendation: enforce version pinning at **major and minor version** (e.g. `FROM alpine:3.20`) or use Docker Scout's Remediation (at this point of writing, it's still in Beta). It can warn and prompt user to update when there is a new version.
-
-### Image Tagging Best Practices
-
-- Release new version through CI/CD ? Automation tagging.
-- Different environments => Different tags.
-- If you create 1 Git tag per release, use that Git tag as Docker image tag.
-  E.g. Git tag `v1.2.3` => Tag `:1.2.3`.
-- If you follow a branching strategy for software development, branch names can be used to manage Docker image tags.
-  E.g. `git checkout -b release/1.2.3` => Tag `:1.2.3`.
-- If you host unstable release, use date-based tags for Docker images.
-  E.g. if release date is _2023-06-30_ and it's version `.1.2.3` now => tag `1.2.3-20230630`.
-- If you host stable release, use `:latest` tag, this allows you to easily refer to the latest version without specifying the exact version number.
-  > However, some say you should avoid the ambiguous `:latest` tag in production.
-- If each Git commit is a release, use Git commit hash.
-  E.g. `1.2.3-f8c4aa1`
-
-_Consistency_ and _clariry_ are essential to avoid confusion, and ensure smooth version control of Docker images.
-
-Be that as it may, you must choose a tagging strategy that aligns with your team's workflow and requirements.
-
 ### Docker Compose
 
 _Secrets:_ Instead of writing your **API_KEY=**, your password into `docker run` command or `environment:` attribute in Docker Compose file, these sensitive information should be written using Docker Secrets.
@@ -780,3 +605,4 @@ I like this because it plays nicely with GitHub Actions.
 - [Docker Hub "MySQL"](https://hub.docker.com/_/mysql)
 - [GitHub Docs "Introduction to GitHub Packages"](https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages)
 - [nirmalkushwah08's "Docker Image Tagging Strategy"](https://medium.com/@nirmalkushwah08/docker-image-tagging-strategy-4aa886fb4fcc)
+- [Docker Blog's "Understanding the Docker USER Instruction: Combine USER with WORKDIR", Jay Schmidt, 2024-06-26](https://www.docker.com/blog/understanding-the-docker-user-instruction/)
