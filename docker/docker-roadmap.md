@@ -521,26 +521,26 @@ docker exec demo-mysql sh -c 'exec mysqldump --all-databases -uroot -p"$MYSQL_RO
 docker exec -i demo-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' < /some/path/on/your/host/all-database.sql
 ```
 
-### Building Container Images by Docker Buildx
+## Building Container Images
 
 To build a container image, engineers need to write **Dockerfile** - a text document that contains a list of instructions used by Docker Engine (its plugin, Docker Buildx, to be precise) to build an image.
 
 Container images are built up as a stack of **layers**. A layer is a set of filesystem changes - additions, modifications, deletions - that represents the result of a specific instruction in a Dockerfile. In short, any instruction _that modifies the filesystem_ creates a new layer. Each layer contains only the differences from the layer before it.
 
-When you're pulling a single image from a container registry, you're actually downloading muliple layers. If you calculate the sum of the size of all layers, it's equal to the size of the image.]
+When you're pulling a single image from a container registry, you're actually downloading muliple layers. If you calculate the sum of the size of all layers, it's equal to the size of the image.
 
 Container images layers are designed to be _reused_ extensively:
 
 - Layers can be shared between different images.
 - When pushing or pulling images, Docker checks for existing layers on host filesystem and transferred only new or modified layers.
 
-#### Layer components
+### Layer components
 
 1. Content files: The actual files and directories that were added, modified, or deleted.
 1. Metadata: information about the layer (id, content hash, size, creation timestamp, instruction, ...). You can examine a layer by running `docker image history IMAGE_NAME`.
 1. A pointer to its parent layer: Except for the base layer, each layer references the layer below it (remember, this is a stack).
 
-#### Behind-the-scene of the container execution
+### Behind-the-scene of the container execution
 
 1. After each layer is downloaded, it's extracted into its own directory on the host filesystem.
 2. When a container runs from an image, a union filesystem stacks these layers to create a unified view.
@@ -581,9 +581,121 @@ docker image history my-custom-mysql
 # <missing>      2 months ago   ADD oraclelinux-9-slim-amd64-rootfs.tar.xz /…   113MB     buildkit.dockerfile.v0
 ```
 
-### Docker Compose
+### Best practices in building Docker Images
 
-_Secrets:_ Instead of writing your **API_KEY=**, your password into `docker run` command or `environment:` attribute in Docker Compose file, these sensitive information should be written using Docker Secrets.
+Visit a more dedicated TIL: [Docker image building best practices](./docker-image-building-best-practices.md).
+
+## Docker Compose
+
+### Networking
+
+Without `networks:` or `network_mode:` directives, Compose sets up a single network (now called "default network"). Each container corresponding to a service:
+
+- joins the default network
+- reachable by other containers on that network
+- discoverable by the service's name
+
+Using `networks:` directive, you can define custom networks. You can:
+
+- Create complex topologies
+- Specify custom network drivers (though `bridge` is the most common) and options.
+- Connect services to externally-created networks (e.g. `docker network create --subnet 172.20.0.0/24 wgnet`) which aren't managed by Compose. These networks are typically for host-to-service connection.
+
+Enable IPv6 on default bridge network:
+
+> **NOTE:** remove all comments and trailing comma when paste into `~/.config/docker/daemon.json` (Rootless Docker) or `/etc/docker/daemon.json` (Rootful Docker)
+
+```sh
+# Docker host itself must be configured to forward IPv6 packages between NICs (e.g. between enp3s0f3u1u4 and docker0)
+# NOTE: docker0 is the virtual NIC that acts as the gateway to do NAT for all containers that's within the default "bridge" network
+$ sudo sysctl -w net.ipv6.conf.all.forwarding=1
+$ sudo sysctl -w net.ipv6.conf.default.forwarding=1
+```
+
+```jsonc
+{
+  "dns": ["1.1.1.1", "1.0.0.1", "192.168.31.1"],
+  "ipv6": true,
+  "fixed-cidr-v6": "fd00:6868:6868::/64",
+  "default-network-opts": {
+    "bridge": {
+      "com.docker.network.bridge.host_binding_ipv4": "127.0.0.1",
+      "com.docker.network.bridge.gateway_mode_ipv6": "routed"
+    }
+  }
+}
+```
+
+```yml
+services:
+  proxy:
+    build: ./proxy
+    networks:
+      - default # yes you can add default "bridge" network here
+      - frontend
+  app:
+    build: ./app
+    networks:
+      - frontend
+      - backend
+    links:
+      - "db:database" # alias for service name
+  db:
+    image: postgres
+    ports:
+      # port mapping
+      # "8001" is host port, used for host-to-service communication
+      # "5432" is container port, used for service-to-service communication
+      - "8001:5432"
+    environment:
+      # map syntax with colon
+      RACK_ENV: development
+      SHOW: "true" # quoted, prevent converted to True/False by YAML parser
+      USER_INPUT: # no value, Compose relies on you to resolve the value, if not, it's unset and removed
+      # array syntax with equal
+    environment:
+      - RACK_ENV=development
+      - SHOW=true
+      - USER_INPUT
+
+    networks:
+      backend:
+        # each container can be specified with ipv4 and ipv6 address inside a custom network
+        ipv4_address: 172.16.238.10
+        ipv6_address: 2001:3984:3989::10
+
+# top-level directive
+networks:
+  # default network
+  default:
+    # Use a custom driver
+    driver: custom-driver-1
+
+  # pre-existing network
+  existed-network:
+    name: my-pre-existing-network
+    external: true
+
+  frontend:
+    # Specify driver options
+    driver: bridge
+    driver_opts:
+      # Docs: https://docs.docker.com/engine/network/drivers/bridge/#options
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+      # ... more
+
+  backend:
+    ipam:
+      driver: default
+      config:
+        # define subnet for custom network
+        - subnet: "172.16.238.0/24"
+          subnet: "2001:3984:3989::/64"
+```
+
+### Secrets in Compose
+
+Instead of writing your **API_KEY=**, your password into `docker run` command or `environment:` attribute in Docker Compose file, these sensitive information should be written using Docker Secrets.
 
 ### DockerHub and GitHub Container Registry
 
@@ -606,3 +718,5 @@ I like this because it plays nicely with GitHub Actions.
 - [GitHub Docs "Introduction to GitHub Packages"](https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages)
 - [nirmalkushwah08's "Docker Image Tagging Strategy"](https://medium.com/@nirmalkushwah08/docker-image-tagging-strategy-4aa886fb4fcc)
 - [Docker Blog's "Understanding the Docker USER Instruction: Combine USER with WORKDIR", Jay Schmidt, 2024-06-26](https://www.docker.com/blog/understanding-the-docker-user-instruction/)
+
+- ["Understanding Docker Bridge Network", Augustine Ozor. 2023-06-13](https://medium.com/@augustineozor/understanding-docker-bridge-network-6e499da50f65)

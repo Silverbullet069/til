@@ -1,16 +1,12 @@
 {
-  "markdown.preview.scrollPreviewWithEditor": false,
-  "markdown.preview.scrollEditorWithPreview": false,
-  // CAUTION: DO NOT USE "file" or "language" property.
-  // CAUTION: They aren't appeared in official documentation and I can't confirm if they're working
   "github.copilot.chat.reviewSelection.instructions": [
     {
-      "text": "Ignore code blocks. Check grammar. Improve technical word choice.Replace 'you' with 'the engineer' and 'we' with 'the engineers'."
+      "text": "You MUST check English grammar. You MUST improve technical word choice.Replace 'you' pronoun with 'the engineer' and 'we' pronoun with 'the engineers'.",
+      "language": "markdown"
     }
   ],
-  "github.copilot.chat.testGeneration.instructions": [
-    {
-      "text": "Include edge cases. Always try uniting related tests in a suite."
-    },
-  ],
+  "prettier.enable": true,
+  "markdown.validate.enabled": true,
+  "markdown.preview.scrollPreviewWithEditor": false,
+  "markdown.preview.scrollEditorWithPreview": false,
 }

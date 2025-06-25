@@ -6,9 +6,88 @@ There are a lot of useful CLI commands and templates that I would like to archiv
 
 <!-- tl;dr ends -->
 
+## Use both Parameter Expansion `${}` and Double Quotes `""`
+
+### Parameter expansion `${}`
+
+- Delimits variable names clearly, makes it easier to append text to variables:
+  ```sh
+  echo "${var}text"   # correct
+  echo "$vartext"     # incorrect
+  ```
+- Required for accessing array elements, variable indirection, and parameter substitutions:
+
+  ```sh
+  # Array access
+  echo "${array[0]}"
+
+  # Variable indirection (using the value of a variable as another variable name)
+  var_name="my_var"
+  echo "${!var_name}"
+
+  # Parameter substitution
+  echo "${filename%.txt}"   # Remove .txt extension
+  echo "${path##*/}"        # Get filename from path
+  echo "${var:-default}"    # Use default if var is unset
+  ```
+
+- Helps prevent ambiguity in variable names:
+
+  ```sh
+  # Without ${}, this would be unclear
+  user="admin"
+  echo "${user}_home"  # Outputs: admin_home
+
+  # Prevents errors with non-existent variables
+  empty=""
+  echo "Value: ${empty:-Not provided}"  # Outputs: Value: Not provided
+
+  # Using nested variables
+  prefix="my"
+  suffix="var"
+  echo "${!prefix_$suffix}"  # Accesses the variable named my_var
+  ```
+
+### Double Quotes `""`
+
+> **NOTE:** Double quotes are still necessary even with ${}
+
+- Without quotes, values with spaces or special characters will be word-split and glob-expanded:
+
+  ```sh
+  # Word splitting with spaces
+  name="John Doe"
+  echo $name      # Outputs: John Doe as separate arguments
+  echo "$name"    # Outputs: John Doe as one string
+
+  # Globbing with wildcards
+  file="*.txt"
+  echo $file      # Lists all .txt files in current directory
+  echo "$file"    # Outputs: *.txt as literal text
+
+  # Command substitution
+  output=$(ls -l)
+  echo $output    # Flattens output, loses formatting
+  echo "$output"  # Preserves line breaks and spacing
+
+  # Preserving special characters
+  path="/tmp/my file.txt"
+  cat $path       # Tries to open two files: "/tmp/my" and "file.txt"
+  cat "$path"     # Correctly opens "/tmp/my file.txt"
+  ```
+
+## Differences between `local -r VARIABLE_NAME` and `readonly VARIABLE_NAME`
+
+| Feature        | `local -r`            | `readonly`                 |
+| -------------- | --------------------- | -------------------------- |
+| Scope          | Function-local        | Global                     |
+| Usage location | Functions only        | Anywhere inside the script |
+| Persistence    | Until function exists | Until shell exists         |
+| Can be unset   | No                    | No                         |
+
 ## Differences between `curl -o [FILE]` and `curl > [FILE]`:
 
-| Features                                 | `curl -o [FILE]` | `curl > [FILE]` |
+| Feature                                  | `curl -o [FILE]` | `curl > [FILE]` |
 | ---------------------------------------- | ---------------- | --------------- |
 | Built-in?                                | Yes              | No, shell       |
 | Create parent directories?               | Yes              | No              |

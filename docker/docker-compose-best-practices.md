@@ -2,8 +2,6 @@
 
 <!-- tl;dr starts -->
 
-**TL;DR:**
-
 <!-- tl;dr ends -->
 
 ## Dockerfile Naming Convention

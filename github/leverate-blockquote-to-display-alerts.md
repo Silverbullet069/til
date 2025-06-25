@@ -1,8 +1,8 @@
-# Alerts
+# Leverate GitHub Flavored Markdown Blockquote To Display Alerts
 
 <!-- tl;dr starts -->
 
-There are five types: NOTE, TIP, IMPORTANT, WARNING and CAUTION
+There are five types: **NOTE**, **TIP**, **IMPORTANT**, **WARNING** and **CAUTION**
 
 <!-- tl;dr ends -->
 

@@ -6,17 +6,53 @@ D2 is my most favorite diagraming language. It's much more easier to write and r
 
 <!-- tl;dr ends -->
 
+## Cons
+
+* D2's VSCode Extension is far from feature-complete and relies heavily on the community:
+
+  - No language server ([the PR for the language server implementation by BarryNolte has been converted to draft since March 2024](https://github.com/terrastruct/d2-vscode/pull/117))
+  - Performance issues: every time a Markdown file that includes D2 code blocks is saved, the extension incurs a slight delay, even when the Preview Pane is not open. The delay duration depends on the complexity of the diagrams.
+
+* It's not supported by GitHub Flavored Markdown, so you would have to replace all of your D2 code blocks with external rendered SVG/PNG images.
+
+* D2 Playground requires WebAssembly enabled.
+
+## Table of Contents
+
+- [Cons](#cons)
+- [Template](#template)
+- [Shape and labels](#shape-and-labels)
+- [Connection](#connection)
+- [Containers](#containers)
+- [Styles](#styles)
+- [Text](#text)
+- [Icons](#icons)
+- [Position](#position)
+- [Classes](#classes)
+- [Sequence Diagram](#sequence-diagram)
+- [Dimonsions](#dimonsions)
+- [Interactive](#interactive)
+- [TALA - Terrastruct's AutoLayout Approach](#tala---terrastructs-autolayout-approach)
+
 ## Template
 
+This is a more comprehensive D2 template incorporating commonly used elements. You can use this as a starting point for new diagrams.
+
 ```d2
+# naming convention: snake_case
+
 vars: {
   d2-config: {
-    # Terminal theme code
-    theme-id: 300
+    theme-id: 300 # Dark Mauve
+    layout-engine: tala # or dagre, elk
+    sketch: true # for a hand-drawn look
   }
 }
 
-title: "insert title here" {
+direction: down # Or right, up, left
+
+# Page Title
+page_title: "Diagram Title" {
   shape: text
   near: top-center
   style: {
@@ -25,8 +61,174 @@ title: "insert title here" {
   }
 }
 
-# naming convention: snake_case
+# --- Basic Shapes & Connections ---
+shape_a: "Label A" {
+  # shape: rectangle # Default shape
+  # icon: "path/to/icon_a.svg"
+  # style.fill: "#A9CCE3"
+  # tooltip: "Info about A"
+  # link: "https://example.com/a"
+}
+
+shape_b: "Label B" {
+  shape: circle
+  # style.fill: "#A2D9CE"
+}
+
+shape_a -> shape_b: "Connection Label" {
+  # style.stroke: "#27AE60"
+  # source-arrowhead: <arrowhead_shape> # e.g., arrow, diamond, circle
+  # target-arrowhead: <arrowhead_shape> # e.g., arrow, diamond, circle
+}
+
+# --- Containers ---
+my_container: "Container Label" {
+  # style.fill: "#FADBD8"
+  # icon: "path/to/container_icon.svg"
+
+  child_1: "Child 1"
+  child_2: "Child 2"
+  child_1 -> child_2: "Internal link"
+
+  # nested_container: "Nested" {
+  #   grandchild: "Grandchild"
+  # }
+}
+# external_shape -> my_container.child_1 # Example of connecting to a child
+
+# --- Text & Markdown ---
+notes: |md
+  ## Notes
+  - Markdown content here.
+  - Supports **bold**, *italic*, lists.
+| {
+  # shape: text # Optional, default for multiline is rectangle
+  # near: bottom-left # Position it as needed
+}
+
+# --- Advanced (Commented out by default) ---
+# classes: {
+#   node_style: {
+#     style: { font-size: 12; fill: "#D5DBDB" }
+#   }
+#   error_style: {
+#     style: { fill: "#E74C3C"; font-color: white }
+#   }
+# }
+# styled_shape.class: node_style
+# error_shape.class: [node_style, error_style]
+
+# sequence_example: {
+#   shape: sequence_diagram
+#   user: "User"
+#   system: "System"
+#   user -> system: "Request"
+#   system -> user: "Response"
+# }
 ```
+
+### VSCode Snippet
+
+To generate D2 template insde `.d2` D2 script file or `.md` Markdown file, save the following JSON code to `d2.json` and `markdown.d2.json` in your `.vscode/snippets` directory or user snippet.
+
+```json
+{
+  "D2 Comprehensive Template": {
+    "prefix": "!",
+    "body": [
+      "# naming convention: snake_case",
+      "",
+      "vars: {",
+      "  d2-config: {",
+      "    theme-id: ${1:300} # Dark Mauve",
+      "    layout-engine: ${2:tala} # dagre, elk, tala",
+      "    # sketch: true # for a hand-drawn look",
+      "  }",
+      "}",
+      "",
+      "direction: ${3:down} # Or right, up, left",
+      "",
+      "# Page Title",
+      "page_title: \"${4:Diagram Title}\" {",
+      "  shape: text",
+      "  near: top-center",
+      "  style: {",
+      "    font-size: 36",
+      "    bold: true",
+      "  }",
+      "}",
+      "",
+      "# --- Basic Shapes & Connections ---",
+      "shape_a: \"${5:Label A}\" {",
+      "  # shape: rectangle # Default shape",
+      "  # icon: \"path/to/icon_a.svg\"",
+      "  # style.fill: \"#A9CCE3\"",
+      "  # tooltip: \"Info about A\"",
+      "  # link: \"https://example.com/a\"",
+      "}",
+      "",
+      "shape_b: \"${6:Label B}\" {",
+      "  shape: ${7:circle}",
+      "  # style.fill: \"#A2D9CE\"",
+      "}",
+      "",
+      "shape_a -> shape_b: \"${8:Connection Label}\" {",
+      "  # style.stroke: \"#27AE60\"",
+      "  # source-arrowhead: <arrowhead_shape> # e.g., arrow, diamond, circle",
+      "  # target-arrowhead: <arrowhead_shape> # e.g., arrow, diamond, circle",
+      "}",
+      "",
+      "# --- Containers ---",
+      "my_container: \"${9:Container Label}\" {",
+      "  # style.fill: \"#FADBD8\"",
+      "  # icon: \"path/to/container_icon.svg\"",
+      "",
+      "  child_1: \"${10:Child 1}\"",
+      "  child_2: \"${11:Child 2}\"",
+      "  child_1 -> child_2: \"${12:Internal link}\"",
+      "",
+      "  # nested_container: \"Nested\" {",
+      "  #   grandchild: \"Grandchild\"",
+      "  # }",
+      "}",
+      "# external_shape -> my_container.child_1 # Example of connecting to a child",
+      "",
+      "# --- Text & Markdown ---",
+      "notes: |md",
+      "  ## ${13:Notes Title}",
+      "  - ${14:Markdown content here}.",
+      "  - Supports **bold**, *italic*, lists.",
+      "| {",
+      "  # shape: text # Optional, default for multiline is rectangle",
+      "  # near: bottom-left # Position it as needed",
+      "}",
+      "",
+      "# --- Advanced (Commented out by default) ---",
+      "# classes: {",
+      "#   node_style: {",
+      "#     style: { font-size: 12; fill: \"#D5DBDB\" }",
+      "#   }",
+      "#   error_style: {",
+      "#     style: { fill: \"#E74C3C\"; font-color: white }",
+      "#   }",
+      "# }",
+      "# styled_shape.class: node_style",
+      "# error_shape.class: [node_style, error_style]",
+      "",
+      "# sequence_example: {",
+      "#   shape: sequence_diagram",
+      "#   user: \"User\"",
+      "#   system: \"System\"",
+      "#   user -> system: \"Request\"",
+      "#   system -> user: \"Response\"",
+      "# }"
+    ],
+    "description": "A comprehensive D2 diagram template with common elements and placeholders."
+  }
+}
+```
+
+[Back to TOC](#table-of-contents)
 
 ## Shape and labels
 
@@ -47,6 +249,8 @@ pg: PostgreSQL            # label
 Cloud: my cloud
 Cloud.shape: cylinder     # changing shape using dot notation
 ```
+
+[Back to TOC](#table-of-contents)
 
 ## Connection
 
@@ -93,6 +297,7 @@ b: Whether weary or unweary, O man, do not rest
 
 c: I still maintain the point that designing a monolithic kernel in 1991 is a
 
+# NOTE: arrowhead can only be tweaked in connection
 a -> b: To err is human, to moo bovine {
   source-arrowhead: 1
   target-arrowhead: * {
@@ -114,7 +319,7 @@ d: A black cat crossing your path signifies that the animal is going somewhere
 d -> a -> c
 
 ## There are much more arrowhead options
-#
+## Very useful when create UML Class/SQL diagram
 # triangle
 # arrow
 # diamond
@@ -124,15 +329,17 @@ d -> a -> c
 # cf-many, cf-many-required
 ```
 
+**Referencing connections:** Use parenthesis and square brackets syntax
+
 ```d2
-## referencing connections
-## use parenthesis and square brackets
 x -> y: hi
 x -> y: hello
 
 (x -> y)[0].style.stroke: red
 (x -> y)[1].style.stroke: blue
 ```
+
+[Back to TOC](#table-of-contents)
 
 ## Containers
 
@@ -178,6 +385,8 @@ birthdays: {
   _.christmas.style.fill: "#ACE1AF"
 }
 ```
+
+[Back to TOC](#table-of-contents)
 
 ## Styles
 
@@ -256,6 +465,8 @@ jerry.style.text-transform: uppercase
 # double-border
 ```
 
+[Back to TOC](#table-of-contents)
+
 ## Text
 
 ```d2
@@ -305,6 +516,8 @@ poll the people -> results
 results -> unfavorable -> poll the people
 results -> favorable -> will of the people
 ```
+
+[Back to TOC](#table-of-contents)
 
 ## Icons
 
@@ -361,6 +574,8 @@ github: {
 }
 ```
 
+[Back to TOC](#table-of-contents)
+
 ## Position
 
 ```d2
@@ -383,23 +598,20 @@ title: |md
 }
 
 poll the people -> results
-
 results -> unfavorable -> poll the people
-
 results -> favorable -> will of the people
 
+# NOTE: make a legend using positions and dimensions
 legend: {
   near: bottom-center
 
   color1: foo {
     shape: text
-
     style.font-color: green
   }
 
   color2: bar {
     shape: text
-
     style.font-color: red
   }
 }
@@ -410,7 +622,7 @@ explanation: |md
 
   The Large Language Model (LLM) is a powerful AI\
 
-    system that learns from vast amounts of text data.\
+  system that learns from vast amounts of text data.\
 
   By analyzing patterns and structures in language,\
 
@@ -469,7 +681,28 @@ y: profits {
 
 # near object
 # TALA only
+aws: {
+  load_balancer -> api
+  api -> db
+}
+
+gcloud: {
+  auth -> db
+}
+
+gcloud -> aws
+
+explanation: |md
+  # Why do we use AWS?
+
+  - It has more uptime than GCloud
+  - We have free credits
+| {
+  near: aws
+}
 ```
+
+[Back to TOC](#table-of-contents)
 
 ## Classes
 
@@ -478,6 +711,7 @@ direction: right
 
 classes: {
   load balancer: {
+    # multi-line long labels avoid label collisions
     label: load\nbalancer
     width: 100
     height: 200
@@ -559,6 +793,8 @@ classes: {
 x.class: [uno; dos]
 y.class: [dos; uno]
 ```
+
+[Back to TOC](#table-of-contents)
 
 ## Sequence Diagram
 
@@ -722,9 +958,14 @@ demo sequence diagram \#8: {
 }
 ```
 
+[Back to TOC](#table-of-contents)
+
 ## Dimonsions
 
 ```d2
+# Sometimes it's not appropriate for shapes' size to depend on content.
+# Use `width:` and `height:` to set more appropriate dimensions.
+
 direction: right
 
 small jerry: "" {
@@ -751,6 +992,8 @@ big jerry: "" {
 big jerry -> med jerry -> small jerry
 ```
 
+[Back to TOC](#table-of-contents)
+
 ## Interactive
 
 ```d2
@@ -776,7 +1019,86 @@ y2: And I'm a PC {
   link: https://microsoft.com
 }
 
-x2 -> y2: gazoontite {
+x2 -> y2: Google {
   link: https://google.com
 }
 ```
+
+[Back to TOC](#table-of-contents)
+
+## TALA - Terrastruct's AutoLayout Approach
+
+It's a closed source, proprietary layout engine developed by Terrastruct. It many fixes problems from other archaic layout engines that no longer being supported.
+
+Key points:
+
+- **Symmetry:** shapes are put into positions that make the whole diagram symmetrical.
+
+  ![symmetry diagram](./symmetry.png)
+
+- **Clusters:** multiple shapes connected to the same shape are laid side-by-side with each other.
+
+  ![cluster diagram](./cluster.png)
+
+- **Hierarchy:** structures identified by multiple levels of shapes connected in the same direction. A special set of rules get enforced (e.g. even spacing between levels).
+  Write `shape: hierarchy`to force a hierarchical shape.
+
+  ![hierarchy diagram](./hierarchy.png)
+
+- **Balanced connections:** if there is a large number of connections that can't fit entirely on the center space (even after enlarging container), it will reroute some of them to left-and-right space but still symmetrical.
+
+  ![balancing diagram](./balancing.png)
+
+- **Dynamic label positioning:** Label are positioned to where they avoid obstructions (shapes, connections, ...)
+
+  | Shape label             | Connection label          |
+  | ----------------------- | ------------------------- |
+  | ![label 1](./label.png) | ![label 2](./label-2.png) |
+
+- **Square aspect ratio:** non-connected subgraphs are bin-packed so they feel symmetrical.
+
+  ![bin packing](./bin-packing.png)
+
+- **Direction per container:** specify `direction: up|down|left|right` constraint inside containers, by default it prefers "down-right".
+
+  ![direction per container](./direction.png)
+
+- **Shapes near other shapes:** specify `near: <absolute ID>` constraint targeting other shapes, providing absolute ID if targeting shapes nested inside container.
+
+  ![near](./near.png)
+
+- **SQL table column matching:** if two SQL tables has a foreign key constaint, the `sql_table` connection points the foreign key column of one table to the ID column of another table.
+
+  ![sql](./sql.png)
+
+- **Sequences:** a chain of shapes connected with `steps:` are arranged from tail to head instead of using connections.
+
+  ![sequences](./sequences.png)
+
+- **Self-connections:** `x -> x` occupies a corner. Multiple connections of the same type (directed, undirected, bidirected) reused the same corners.
+
+  ![self-connection](./self-connection.png)
+
+- **Perfer horizontal connections for many labels:** When 2 nodes have 3 or more connections between them, all with labels, those nodes will prefer a horizontal position with each other.
+
+  > **NOTE:** if `direction: down` or `direction: up` is explicitly set, this behavior is ignored.
+
+  ![horizontal](./horizontal.png)
+
+- **Grid edges:** better edge routers
+
+  | Non-TALA grid connections           | TALA grid connections         |
+  | ----------------------------------- | ----------------------------- |
+  | ![grid-no-tala](./grid-no-tala.png) | ![grid-tala](./grid-tala.png) |
+
+- **Seed:** Specifying different seed values might get you better results on complex diagrams. Note that the more seeds there are, the more computer resources D2 takes.
+
+  ![seed](./seed.png)
+
+- **Relative positioning:** set `top:` and `left:` for top-level objects and nested-level objects will move around it.
+
+  ![relative-positioning](./rel-positioning.png)
+
+  > Processing use Input as anchor, Renderer and Validator use Processing as anchor.
+
+[Back to TOC](#table-of-contents)

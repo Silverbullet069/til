@@ -20,24 +20,70 @@ I've been focused on understanding the precise definitions of technological term
 
 "Efficiency" focuses on the **quantity of resources**, concerns doing the same amount of work (or more) using less time. Overall, it describes how well the resources are used.
 
-## [Interpreted vs Compiled Programming Languages: What's the Difference?](https://www.freecodecamp.org/news/compiled-versus-interpreted-languages/)
+## Interpreted vs Compiled Programming Languages: What's the Difference?
 
-<!-- prettier-ignore -->
-| Criteria | Compiled | Interpreted |
-|---|---|---|
-| Compilation output | Native machine code, Bytecode[^1] | None (or Bytecode in some implementations) |
-| Execution target | System's processor, Interpreter (VM)[^1] | Interpreter (VM) |
-| Platform-independent | No (if compiled into native machine code), Yes (if compiled into Bytecode) | Yes |
-| Dynamic typing | Generally No (with exceptions) | Generally Yes |
-| Execution speed | Fastest | Slower (though JIT[^2] can approach compiled speeds) |
-| Program size | Larger (especially with static linking) | Smaller |
-| Development cycle | Longer (compile-link-run) | Shorter (immediate execution) |
-| Error detection | Mostly at compile time | Mostly at runtime |
-| Memory management | Often manual or compiled-in | Usually automatic (garbage collection) |
-| Examples | C, C++, Rust, Go, Java | JavaScript, Python, Ruby, Shell |
+There are many debates about whether a programming language is compiled, interpreted, or both, and whether it uses an Ahead-of-Time (AOT) compiler, a Just-in-Time (JIT) compiler, or both. This can be particularly confusing with popular programming languages like Java, Python, and JavaScript.
 
-[^1]: Not every compiled programming language outputs native machine code at compilation step. Java compiled source code into bytecode and interpret it using JVM.
-[^2]: Just-In-Time (or JIT) is a compilation strategy that converts frequently executed bytecode into native machine code for performance. This behavior happens at runtime, not during the compilation.
+**Compiler:** a program that converts a language into another language.
+
+- Input: source code in a file, written in human-readable programming language.
+- Output:
+  - Code written in machine-readable language targeting a specific CPU architecture (e.g., AMD32, AMD64, ARM32, ARM64, RISC-V, ...) and a specific OS (GNU/Linux, Windows, MacOS, ...). The language can be called **instruction sets**. The instructions written in instruction sets are called **native machine code**.
+  - Code written in machine-readable language targeting a specific virtual machine (e.g. JVM (JRE), PVM (CPython), LuaJIT VM ...). This "virtual machine" is also called a **bytecode/intermediate bytecode**. The virtual machine that _interprets_ bytecode is called **interpreter/bytecode interpreter**.
+
+**Interpreter:** a program that executes instructions written in a machine-readable language that is independent of CPU architecture, OS, ...
+
+**Ahead-Of-Time Compiler (or AOT Compiler):** A compiler type that create _both_ bytecode and native machine code **during compile time**.
+
+Most of AOT compilers create native machine code.
+
+Some AOT compilers create bytecode. AOT Compiler source-to-bytecode output has to be interpreted by a virtual machine, which means **the performance gain is from reducing loading time**.
+
+E.g.
+
+- C compiler: `.c` + `.h` => `.exe/.bin/...` (native machine code)
+- Java AOT compiler (`javac`): `.java` => `.class` (bytecode)
+- CPython AOT compiler: `.py` => `.pyc` (bytecode)
+
+**Just-In-Time Compiler (or JIT Compiler):** A compiler type that creates native machine code **during runtime** from bytecode.
+
+It is usually bundled with an interpreter. During runtime, the interpreter converts frequently executed bytecode into native machine code. **The performance gain is from reducing execution time.**
+
+E.g.
+
+- Java JIT compiler.
+- PyPy JIT compiler.
+- JavaScript JIT compiler.
+- Official Python JIT compiler (from >=v3.13)
+
+**Binary/machine code** and **bytecode** can exist in two forms:
+
+- **Standalone files** for direct interaction:
+
+  - Bytecode files: `.class` (Java), `.pyc` (Python), etc.
+  - Machine code files: `.exe`, `.msi`, `.bin`, etc. ([exhaustive list](https://askubuntu.com/a/174356/1689543))
+
+- **In-memory representation** ("internal bytecode") that isn't designed for direct interaction and only exists during script execution.
+
+Here are the runtime environment's components of some popular programming languages:
+
+1. Java: Java AOT Compiler source-to-bytecode + JVM + JIT Compiler.
+
+1. CPython: AOT Compiler source-to-bytecode + PVM + JIT Compiler (only >=v3.13).
+
+1. Standard Lua (PUC-Rio Lua): AOT Compiler source-to-bytecode + VM.
+
+1. LuaJIT (alternative, high-performance implementation of Lua, targeting Lua 5.1): enhanced AOT Compiler source-to-bytecode + enhanced VM (implemented in assembly) + JIT Compiler.
+
+<!-- prettier-ginore -->
+
+| Criteria          | Compiled                                | Interpreted                            |
+| ----------------- | --------------------------------------- | -------------------------------------- |
+| Typing strategy   | Mostly static                           | All dynamic                            |
+| Program size      | Larger (especially with static linking) | Smaller                                |
+| Development cycle | Longer (compile-link-run)               | Shorter (immediate execution)          |
+| Error detection   | Mostly at compile time                  | Mostly at runtime                      |
+| Memory management | Often manual or compiled-in             | Usually automatic (garbage collection) |
 
 ## [Technique Vs Method Vs Methodology](https://anthroholic.com/distinction-between-technique-method-and-methodology)
 

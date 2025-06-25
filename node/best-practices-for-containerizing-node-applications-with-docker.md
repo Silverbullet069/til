@@ -33,7 +33,7 @@ RUN --mount=type=secret,mode=0644,id=npmrc,target=/usr/src/app/.npmrc npm ci --i
 
 # production
 FROM node:20.9.0-bullseye-slim
-ENV NODE_ENV production
+ENV NODE_ENV=production
 COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 USER node
 WORKDIR /usr/src/app
@@ -94,7 +94,7 @@ COPY webpack/ webpack/
 # restore original file
 COPY package.json .
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 RUN npm run build
 
@@ -115,8 +115,8 @@ COPY --from=builder --chown=node:node /usr/src/dist/ dist/
 # use original file
 COPY --from=builder --chown=node:node /usr/src/package.json .
 
-ENV PORT 80
-ENV NODE_ENV production
+ENV PORT=80
+ENV NODE_ENV=production
 
 USER node
 
@@ -128,6 +128,4 @@ CMD ["dumb-init", "node", "dist/server"]
 - [Liran Tal, Yoni Goldberg, Snyk Blog "10 best practices to containerize Node.js web applications with Docker"](https://snyk.io/blog/10-best-practices-to-containerize-nodejs-web-applications-with-docker/)
 - [abstractvector's " Lightweight node.js Dockerfile "](https://gist.github.com/abstractvector/ed3f892ec0114e28b3d6dcdc4c39b1f2)
 
-## TODOs
-
-- [Liran Tal, Juan Picado, Snyk Blog "10 npm Security Best Practices"](https://snyk.io/blog/ten-npm-security-best-practices/)
+<!-- TODO: read https://snyk.io/blog/ten-npm-security-best-practices/ -->
