@@ -113,29 +113,19 @@ Other might categorized into **TWO** prompt elements: _instructions_ and _input 
 
 Simple prompt can be a one-liner that embedded all four elements. Complex prompt can span across multiple paragraphs with clear boundaries. All four elements are optional.
 
-## Anecdotal/Arbitrary practices
+## General practices
 
-- Use token counters. The number of tokens created from converting a simple "Hello World" UTF-8 string is varied among the LLMs from different major LLM vendors. 1 Claude-family LLM token ~= 1 GPT-family LLM token ~= 1 Gemini-family LLM token.
+- Don't start writing your prompts/instructions/chat modes... from scratch, [PatrickJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules/blob/main/rules-new) is a good starting place.
 
-- Understand your LLM vendor. There is a lack of transparency from the LLM-powered coding platforms (GitHub Copilot, Cursor, Windsurf, ...). They didn't show the context window or the maximum number of input/output tokens.
+- Avoid writing ONE complex Chat request (even when it's unambiguous since it's time-consuming). Utilize multiple [simple, specific, short](https://www.youtube.com/watch?v=hh1nOX14TyY) one-liner Chat requests.
 
-- Avoid hallucination by providing the up-to-date documentation of all of the dependencies inside your tech stack.
-
-- Reasoning models can be stuck in its thought and produce no good solution, wasting your money on those reasoning token.
-
-- LLM is limited by the context window, maximum input tokens and maximum output tokens. Adding too much unrelated context not only waste your precious input tokens but also have negative performance impact.
-
-- Add general guidelines and framework-specific rules for programming language. Use the rules in this repository as the starting place [PatrickJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules/blob/main/rules-new)
-
-> [!CAUTION]
->
-> At this point of writing, there is no sign of maintainance.
+- Beside general, one-size-fit-all coding guidelines, add separate **rules** for specific tech stack (e.g. frameworks, libraries, programming languages, ...)
 
 - Include the project directory structure as **input data** ([cre](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/))
 
 - Add architectural context as **input data** to every follow-up prompts because the architectural context specified in the first prompt will be forgotten in the long run ([cre](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/))
 
-- Avoid including the whole codebase as **input data**. Include the **rules** only. ([cre](https://www.reddit.com/r/cursor/comments/1kl1wvo/comment/mrzu7ua/))
+- Avoid including the whole codebase as **input data**. ([cre](https://www.reddit.com/r/cursor/comments/1kl1wvo/comment/mrzu7ua/))
 
 - Check whether **rules** are honored by role-playing (e.g. make it call you mommy, daddy, etc. or generate a smiling face, a pelican riding a bicycle, etc.) or generate rule summarization at the start of the conversation. ([cre#1](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm55r1b/), [cre#2](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm54hu9/)).
 
@@ -163,6 +153,18 @@ Simple prompt can be a one-liner that embedded all four elements. Complex prompt
 - Create **rules** from a template **rule**. ([cre](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/))
 
 - (Cursor only) Replace the deprecated `.cursorrules` file with the more recent `instructions` directory + `.mdc` files.
+
+- Use token counters. The number of tokens created from converting a simple "Hello World" UTF-8 string is varied among the LLMs from different major LLM vendors. 1 Claude-family LLM token ~= 1 GPT-family LLM token ~= 1 Gemini-family LLM token.
+
+- Understand the capacity of the LLMs given by LLM seller. There is a lack of transparency from the LLM-powered coding platforms (GitHub Copilot, Cursor, Windsurf, ...). They didn't show the context window nor the maximum number of input/output tokens.
+
+- Avoid hallucination by providing the up-to-date documentation of all of the dependencies inside your tech stack. You can use [Context7 MCP by Upstash](https://github.com/upstash/context7) for this, but self-maintained docs can be more reliable.
+
+> [!CAUTION]
+>
+> Context7 let user upload their own documentation, malicious users can include malicious script inside their docs, results in prompt injection vulnerability. Upstash relies on other users to report the malicious docs similar to `npm/pip`.
+
+- Refrain from adding too much unrelated context. LLM is limited by the context window and maximum input tokens. Not only your precious input tokens are wasted but also the outputs suffer from negative performance impact.
 
 ## One-size-fit-all practices
 
@@ -561,9 +563,9 @@ If you're using your codebase as _input data_, make sure that your code follows 
 - Include unit tests.
 - ...
 
-### Experiment and iterate
+### Test and iterate
 
-Iterate on your prompt and try again. Either you create a new prompt with different _instructions_, or write follow-up prompts to refine previous prompt's outputs.
+Iterate on your prompt. If you can, design a strong empirical evaluations. If you need to make additional follow-up prompts to refine previous prompt's outputs, write them into the prompt as well.
 
 ## Prompt Engineering Techniques
 

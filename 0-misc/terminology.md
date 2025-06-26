@@ -1,10 +1,26 @@
-# Terminology Differences
+# Terminology
 
 <!-- tl;dr starts -->
 
 I've been focused on understanding the precise definitions of technological terminologies. To achieve this, I compare each term with its similar counterparts.
 
 <!-- tl;dr ends -->
+
+## -suffix comparison table
+
+In order to categorize and understand the overview of every aspects of a tech project, these suffixes are used.
+
+<!-- prettier-ignore -->
+| Suffix | Category | Description | Examples |
+| --- | --- | --- | --- |
+| `-oriented` | Philosophy, Architecture | HOW things are structured/organized | Object-oriented Programming/Design, Service/Microservice-oriented Architecture, etc. |
+| `-driven` | Controlled by external input | WHAT controls the behavior | Event-driven Architecture, Test-driven Development, etc. |
+| `-first` | Priority | WHAT gets priority in design decisions | Mobile-first Design, API-first Development, Local-first, Security-first, etc. |
+| `-based` | Foundation/Tech Stack | What it's built on | Cloud-based Infrastructure, AWS-based Infrastructure, Web-based Application, Container-based Deployment, etc. |
+| `-centric` | Central/Focus | WHAT everything revolves around | User-centric Design, Database-centric Architecture, etc. |
+| `-aware` | Intelligence/Recognition | What it can detect | Context-aware, Security-aware, Performance-aware Scaling, etc. |
+| `-enabled` | Capability/Feature | WHAT functionality is avaiable | AI-enabled, Cloud-enabled, etc. |
+| `-ready` | Prepared/Completed | HOW ready is it for deployment | Production-ready, Container-ready, etc. |
 
 ## [dietderpsy's comment on Reddit about the relationship between Program, Software and Application](https://www.reddit.com/r/learnprogramming/comments/kl785y/program_vs_software_vs_application/gh7cv37/)
 
