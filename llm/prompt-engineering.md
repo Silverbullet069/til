@@ -1,4 +1,4 @@
-# Prompt Engineering Best Practices
+# Prompt Engineering
 
 <!-- tl;dr starts -->
 
@@ -6,7 +6,65 @@ Humanity has invented a powerful yet formless tool: LLM. To "tame" the LLMs, tec
 
 <!-- tl;dr ends -->
 
-<!-- TODO: insert a ToC here -->
+## Table of Contents
+
+- [Cheatsheet](#cheatsheet)
+- [The Three Commandments](#the-three-commandments)
+- [The Four Prompt Elements](#the-four-prompt-elements)
+- [General practices](#general-practices)
+- [One-size-fit-all practices](#one-size-fit-all-practices)
+  - [Use English](#use-english)
+  - [Correct grammar](#correct-grammar)
+  - [Use strong modal verb `MUST`](#use-strong-modal-verb-must)
+  - [Use imperative mood](#use-imperative-mood)
+  - [Arrange the position of prompt elements](#arrange-the-position-of-prompt-elements)
+  - [Avoid negation](#avoid-negation)
+  - [Avoid ambiguity](#avoid-ambiguity)
+  - [Add separator](#add-separator)
+  - [Keep your codebase following best practices](#keep-your-codebase-following-best-practices)
+  - [Test and iterate](#test-and-iterate)
+- [Prompt Engineering Techniques](#prompt-engineering-techniques)
+  - [1. Zero-shot Prompting](#1-zero-shot-prompting)
+  - [2. Few-shot Prompting](#2-few-shot-prompting)
+  - [Zero-shot Prompting versus Few-shot Prompting](#zero-shot-prompting-versus-few-shot-prompting)
+  - [3. Chain-of-Thought Prompting](#3-chain-of-thought-prompting)
+    - [3a. Zero-shot CoT Hybrid Prompting](#3a-zero-shot-cot-hybrid-prompting)
+    - [3b: Few-shot CoT Hybrid Prompting](#3b-few-shot-cot-hybrid-prompting)
+    - [3c: Automatic CoT Prompting](#3c-automatic-cot-prompting)
+  - [4. Meta Prompting](#4-meta-prompting)
+  - [5. Self-Consistency](#5-self-consistency)
+  - [6. Generate Knowledge Prompting](#6-generate-knowledge-prompting)
+  - [7. Prompt Chaining](#7-prompt-chaining)
+  - [8. Tree of Thoughts](#8-tree-of-thoughts)
+  - [9. Retrieval Augmented Generation](#9-retrieval-augmented-generation)
+  - [10. Automatic Reasoning and Tool-use](#10-automatic-reasoning-and-tool-use)
+  - [11. Automatic Prompt Engineer](#11-automatic-prompt-engineer)
+  - [12. Active-Prompt](#12-active-prompt)
+  - [13. Directional Stimulus Prompting](#13-directional-stimulus-prompting)
+  - [14. Program-Aided Language Models](#14-program-aided-language-models)
+  - [15. ReAct](#15-react)
+  - [16. Reflexion](#16-reflexion)
+  - [17. Multimodel CoT](#17-multimodel-cot)
+  - [18. Graph Prompting](#18-graph-prompting)
+- [Vendor-specific Prompting Techniques](#vendor-specific-prompting-techniques)
+  - [1. Prompt Generator](#1-prompt-generator)
+  - [2. Role Prompting](#2-role-prompting)
+  - [3. Prefilling Responses](#3-prefilling-responses)
+- [Reasoning Model Prompting Techniques](#reasoning-model-prompting-techniques)
+  - [0. General techniques](#0-general-techniques)
+  - [1. Avoid Chain-of-Thought (CoT)](#1-avoid-chain-of-thought-cot)
+  - [2. Avoid Prompt Chaining and Prefilling Responses](#2-avoid-prompt-chaining-and-prefilling-responses)
+  - [3. Few-shot CoT Prompting](#3-few-shot-cot-prompting)
+  - [4. Make the best of long outputs and longform thinking](#4-make-the-best-of-long-outputs-and-longform-thinking)
+  - [5. Reflect on its work](#5-reflect-on-its-work)
+- [Prompt Framework](#prompt-framework)
+  - [Structural Documentation System](#structural-documentation-system)
+  - [kleosr/Cursorkleosr](#kleosrcursorkleosr)
+  - [RIPER-5 (Research, Innovate, Plan, Execute, Review)](#riper-5-research-innovate-plan-execute-review)
+    - [Overview](#overview)
+    - [START Phase](#start-phase)
+    - [RIPER-5 Workflow](#riper-5-workflow)
+- [References](#references)
 
 ## Cheatsheet
 
@@ -874,7 +932,7 @@ _TL;DR:_ Provide reasoning steps to ALL of the demonstrations ([Wei et al. (2022
 |**Output**|`Adding all the odd numbers (15, 5, 13, 7, 1) gives 41. The answer is False.`|`Adding all the odd numbers (15, 5, 13, 7, 1) gives 41. The answer is False.`|
 |**Evaluation**|Even with one example, the task can still be solved nicely||
 
-### Hybrid #3: Automatic CoT Prompting
+#### 3c: Automatic CoT Prompting
 
 _TL;DR:_ Auto generate the demonstrations including reasoning steps using Zero-shot CoT with simple heuristics (length of questions, number of steps, ...) as diverse as possible. Then put all of the demonstrations plus another Zero-shot CoT for the _input data_ through LLM.
 
@@ -1115,7 +1173,7 @@ Skipped.
 
 ## Reasoning Model Prompting Techniques
 
-### One-size-fit-all practices
+### 0. General Techniques
 
 - Some AI vendors allow users to configure the number of Reasoning tokens. Start with the minimum and increase to adjust based on use cases.
   - If the number is too large, use batch processing if the vendor supports it.
@@ -1190,7 +1248,7 @@ Prefilling is actually not allowed since it caused model confusion.
 
 > [!WARNING]
 >
-> This framework increase your input tokens (also your money) in exchange for unquantifiable performance boost. Test it thoroughly.
+> This framework increase your input tokens in exchange for unquantifiable performance boost. Make sure you design an empirical test.
 
 - Product Requirements Document (PRD): define the "what", "for who", "customer's pain", project scope.
 - App Flow Document: chart the user path, breakdown step-by-step of the whole user journey. Be painstalking specific.
@@ -1218,10 +1276,10 @@ Original idea is credited to [@robotlovehuman](https://forum.cursor.com/u/robotl
 Thanks to [johnpeterman72](https://github.com/johnpeterman72) turning the idea into usable product, there are currently 3 implementations at the moment:
 
 1. [johnpeterman72/CursorRIPER](https://github.com/johnpeterman72/CursorRIPER): the original
-1. [johnpeterman72/CursorRIPER.sigma](https://github.com/johnpeterman72/CursorRIPER.sigma): a symbolic, ultra-efficient "LLM prompt framework" for software development assistance whose core is built around RIPER-5 and 3 capabilities: code protection, context reference, permission management
+1. [johnpeterman72/CursorRIPER.sigma](https://github.com/johnpeterman72/CursorRIPER.sigma): a symbolic, token-efficient LLM prompt framework whose core is built around RIPER-5.
 1. [johnpeterman72/CursorRIPER.sigma-lite](https://github.com/johnpeterman72/CursorRIPER.sigma-lite): The Lite version of [johnpeterman72/CursorRIPER.sigma](https://github.com/johnpeterman72/CursorRIPER.sigma) without code protection, context reference and permission management.
 
-Right now, `.sigma-lite` are latest, simplest and seems to work well with Claude 3.7.
+Right now, `.sigma` are latest, simplest and seems to work well with Claude 3.7.
 
 > [!NOTE]
 >
@@ -1229,12 +1287,14 @@ Right now, `.sigma-lite` are latest, simplest and seems to work well with Claude
 
 #### Overview
 
-RIPER-5 is a prompt engineering framework that guides the LLMs following a structured workflow using persistent memory as context. The framework does TWO things:
+RIPER-5 Sigma is an LLM prompt engineering framework that guides the LLMs following a structured workflow. Here are the key features:
 
-- Initialize the project (can be done on existing project).
-- Solve the ad-hoc problem using RIPER Workflow.
-
-This framework prevents coding disasters while maintaining perfact continuity across sessions.
+- Initialize the project, the memory bank with START workflow.
+- Solve ad-hoc problem using RIPER-5 workflow.
+- Reduce input tokens yet performance remain by using a list of Greek letters, subscripts and emoji to replace long English subjects and phrases.
+- Protects critical code sections with comment annotations.
+- Manages and track file, code, and document references.
+- Enforce precise CRUD operations in each mode and handles deviations.
 
 #### START Phase
 
@@ -1315,7 +1375,7 @@ Tips:
 
 **Step 6: Memory Bank Initialization**
 
-There will be 5 core memory files:
+There are 6 core memory files:
 
 ```txt
 memory-bank/
@@ -1324,6 +1384,7 @@ memory-bank/
 |-- techContext.md        # FE, BE, DB, test, deploy, IDE, version control, pkg mng, build, CI/CD, dependency
 |-- activeContext.md      # track current focus, recent changes, immediate next steps.
 |-- progress.md           # track curernt phase, mode, features, issues, milestone.
+|-- protection.md         #
 ```
 
 Tips:

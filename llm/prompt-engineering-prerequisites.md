@@ -2,7 +2,7 @@
 
 <!-- tl;dr starts -->
 
-**TL;DR**: Define success criteria and Create strong empirical evaluations are two of Anthropic's Prompt Engineering prerequisites. There are **12** success criteria: **4 strong** criteria and **8 common** criteria. Each success criteria will be evaluated by different evaluation strategies.
+**TL;DR**: **Define success criteria** and **Create strong empirical evaluations** are two of Anthropic's Prompt Engineering prerequisites. There are **TWELVE** success criteria: **4 strong** criteria and **8 common** criteria. Each success criteria will be evaluated by different evaluation strategies.
 
 <!-- tl;dr ends -->
 

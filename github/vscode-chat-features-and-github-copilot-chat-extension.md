@@ -6,13 +6,16 @@ Each VSCode monthly release introduces a lot of major breaking changes to AI fea
 
 <!-- tl;dr ends -->
 
-## VSCode's Chat features
+## [Cheatsheet](https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features#_chat-variables)
 
-## VSCode Extension
+- There are **THREE** chat UI: **Chat view**, **Quick Chat** and **Inline Chat**.
+- Switch mode using `Ctrl + .`.
+- `Show Chats` command can restore past sessions, even Edit/Agent sessions so you can keep working on them
+- It is recommended to use **Open Chat in New Window** since you can run multiple agents at once. However, it is best to keep at most one agent use read-write tools, while the rest use read-only tools.
 
-### [Cheatsheet](https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features#_chat-variables)
+---
 
-There are **THREE** chat UI: **Chat view**, **Quick Chat** and **Inline Chat**.
+Since company might banned the use of 3rd-party LLMs. Use self-hosted SLM with Bring Your Own Key (BYOK) feature.
 
 ---
 
@@ -23,11 +26,83 @@ There are multiple types of [Contexts](https://code.visualstudio.com/docs/copilo
 - `Open Editors`
 - `Files & Folders`
 - `Screenshot Window`
-- `Source Control`
+- `Source Control` (add history item)
 - `Instructions`
 - `Problems`
 - `Symbol`
 - `Tools`
+
+---
+
+[Chat variables](https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features#_chat-variables) are list of tools/tool sets, either from built-in, custom grouped or Extensions.
+
+Built-in:
+
+- `#changes` (the list of source control changes)
+- `#codebase`
+- `#editFiles` (edit files directly)
+- `#extensions`
+- `#fetch` (fetch the main content of a web page whose URL is specified in any of the context)
+- `#<file:foo.bar>` or `#<file:dir>` (attach a file/directory as context)
+- `#findTestFiles` (given a code under test, output test file, and vice versa)
+- `#githubRepo` (code search for a GitHub repo, e.g. `what is variable reference in VSCode #githubRepo microsoft/vscode`)
+- `#new` (scaffold new VSCode workspace)
+- `#openSimpleBrowser` (open built-in browser, preview a locally-deployed web app)
+- `#problems` (add workspace problems)
+- `#runCommands` (running terminal commands)
+- `#search` (search and read files inside workspace)
+- `#searchResults` (add results from Search view a.k.a Find and Replace input field)
+- `#selection`
+- `#<symbol>` (add symbol name, require language servers)
+- `#terminalSelection`
+- `#terminalLastCommand`
+- `#testFailure` (add test failure info from VSCode's test feature)
+- `#usages` ("Find All References" + "Find Implementations" + "Go to Definition").
+- `#VSCodeAPI` (**NOTE:** ask questions releated to VSCode **extension development**)
+- `#<tool-set>` (a collection of related tools grouped together and toggleable in Agent mode).
+
+Python Extension:
+
+- `#configurePythonEnvironment` (ensure Python Environment is set up correctly for the workspace, create virtual env if needed and activate it)
+- `#getPythonEnvironmentInfo`
+- `#getPythonExecutableCommand`
+- `#installPythonPackage`
+
+MermaidChart Extension:
+
+- `#get_syntax_docs`
+- `#mermaid-diagram-preview`
+- `#mermaid-diagram-validator`
+
+---
+
+**Chat participants** are like "expert" of a field, and this "expert" can perform a list of pre-defined actions.
+
+Run `/help` command to list all of the available Chat participants and their associating Chat commands.
+
+> Without knowing the design decisions, the Chat participants can be hard to have its purpose understood.
+
+```md
+`@workspace`
+`@workspace /explain`
+`@workspace /tests`
+`@workspace /fix`
+`@workspace /new` (scaffold a new file/project in a workspace)
+`@workspace /setupTests` (experimental)
+
+`@github`
+
+`@vscode`
+`@vscode /search` (workspace search)
+
+`@terminal`
+`@terminal /explain`
+
+`@mermaid-chart`
+`@mermaid-chart /generate_cloud_architecture_diagram`
+
+`/mcp.servername.promptname` (MCP prompts)
+```
 
 ---
 
@@ -46,49 +121,69 @@ There are multiple types of [Contexts](https://code.visualstudio.com/docs/copilo
 
 ---
 
-### [Chat variables](https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features#_chat-variables)
+## VSCode's Chat features
 
-Common chat variables:
+### Chat View in New Window UI
 
-- `#changes` (the list of source control changes)
-- `#codebase`
-- `#extensions`
-- `#file:foo.bar` or `#file:dir`
-- `#githubRepo` (code search for a GitHub repo, e.g. `what is variable reference in VSCode #githubRepo microsoft/vscode`)
-- `#new` (scaffold new VSCode workspace)
-- `#openSimpleBrowser` (open built-in browser, preview a locally-deployed web app)
-- `#problems` (add workspace problems)
-- `#searchResults` (add results from Search view a.k.a Find and Replace input field)
-- `#selection`
-- `#<symbol>` (add symbol name, require language servers)
-- `#terminalSelection`
-- `#terminalLastCommand`
-- `#testFailure` (add test failure info from VSCode's test feature)
-- `#usages` ("Find All References" + "Find Implementations" + "Go to Definition").
-- `#VSCodeAPI` (**NOTE:** ask questions releated to VSCode **extension development**)
+- Always on Top
+- Toggle Compact mode
+- New Chat
 
-### [Chat participants and Chat commands](#)
+### Select and attach UI elements to chat
 
-Chat participants are like "expert" of a field, and this "expert" can perform a list of pre-defined actions.
+Set to true the following settings:
 
-Run `/help` command to list all of the available Chat participants and their associating Chat commands.
+- `chat.sendElementsToChat.enabled`
+- `chat.sendElementsToChat.attachCSS`
+- `chat.sendElementsToChat.attachImages`
 
-> Without knowing the design decisions, the Chat participants can be hard to have its purpose understood.
+### Create and launch tasks in Agent mode
 
-```md
-`@workspace`:
+Set to true the following settings:
 
-- `/explain`
-- `/tests`
-- `/fix`
-- `/new` (scaffold a new file/project in a workspace)
-- `/setupTests` (experimental)
+- `github.copilot.chat.newWorkspaceCreation.enabled`
 
-`@vscode` + `/search` (workspace search)
-`@terminal` + `/explain`
-`@mermaid-chart` + `/generating`
-`@github`
+### Chat tool sets
+
+Run `Configure Tool Sets > Create new tool sets file` command to create a tool set.
+
+Example: Manage GitHub notifications using GitHub MCP server
+
+```jsonc
+{
+  "gh-news": {
+    "tools": [
+      "list_notifications",
+      "dismiss_notification",
+      "get_notification_details"
+    ],
+    "description": "Manage GitHub notification",
+    "icon": "github-project"
+  }
+}
 ```
+
+### [MCP](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
+
+- Configuration: `"mcp"` section in user, remote `settings.json`, or `.code-workspace` settings, in `.vscode/mcp.json`.
+  - Reference an env var using `${env:API_KEY}`
+  - Prompt a value when server started `${input:ENDPOINT}`
+- Can be installed via `MCP: Add Server`. However, MCP server can run arbitrary code on host system, best to set up Docker container.
+- List MCP servers + status with `MCP: List Servers` command.
+- Pick the tools available for use in chat using `Select Tools` button.
+- Support Streamable HTTP and Stdin servers.
+- Prompt:
+  - MCP can implement the feature of generating prompt from prompt.
+  - Accessible as slash commands `/mcp.servername.promptname`.
+- Resources:
+  - MCP tool calls result in resources.
+  - Those resources can be saved in Chat.
+  - Resources can be attached as Context.
+  - List resources inside multiple MCP servers with `MCP: Browse Resources` command or one MCP server with `MCP: List Servers` command.
+- Sampling/Auth
+-
+
+## VSCode Extension
 
 ### [Code review](https://docs.github.com/en/copilot/using-github-copilot/code-review/using-copilot-code-review?tool=vscode)
 
@@ -98,16 +193,18 @@ Run `/help` command to list all of the available Chat participants and their ass
 
 The power of OSS and FOSS is the community. Anyone who contribute their code to a public repository with active community can receive code audit from the author/maintainers.
 
-However, for self-developing projects, without a code auditor there will be a lot of problem in the future. Using LLM as code auditor, a single developer can become a one-man army.
+However, for self-developing projects, by setting up LLM as code auditor, a single developer can become a whole tech division.
 
 There are **TWO** types of review:
 
-- **Review selection:** Highlight code and ask for a local review.
-- **Review changes:** Review commits in a PR. Set at remote repository settings.
+- **Review selection** or local review. Review code in active editor.
+- **Review changes** or remote review. Review commits in a PR.
 
-The review instructions can be taken from `CONTRIBUTING.md`.
+Select the part you want to review inside active editor and run `GitHub Copilot: Review and Comment` command to start
 
-### Ask mode
+Tips: If you're contributing to OSS/FOSS projects, the review instructions can be taken from `CONTRIBUTING.md`.
+
+### [Ask mode](https://code.visualstudio.com/docs/copilot/chat/chat-ask-mode)
 
 Use cases:
 
@@ -116,50 +213,50 @@ Use cases:
 - Brainstorm software design ideas.
 - Explore new tech stack.
 
-### Edit mode
+### [Edit mode](https://code.visualstudio.com/docs/copilot/chat/copilot-edits)
 
-Make code edits across multiple files in workspace.
+Use cases:
 
-**Use cases:**
-
+- Make code simple edits across multiple files in workspace.
 - Simple coding tasks when: you know what needs to change and which files to edit.
 - Lightweight operation with zero-to-few tool (set) are used.
 
-### Agent mode
+### [Agent mode](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode)
 
-Make code edits across multiple files in workspace.
+Use cases:
 
-**Use cases:**
-
+- Make complex code edits across multiple files in workspace.
 - Complex coding tasks when you have a less well-defined task. Terminal commands running
 - Heavyweight operations with a lot of tool (set) are used: `fetch`, terminal commands running, etc.
 
+> [!CAUTION]
+>
+> Auto approval all tools is dangerous. Set `chat.tools.autoApprove` to `false`
+
 ### [Custom modes (preview)](https://code.visualstudio.com/docs/copilot/chat/chat-modes#_custom-chat-modes)
 
-**Description:** Define how chat operates, which tools it can use and how it interacts with the codebase. Chat prompt is run within the boundaries of the Chat mode, without having to configure tools or instructions for every request.
+Define how chat operates, which tools it can use and how it interacts with the codebase. Chat prompt is run within the boundaries of the Chat mode, without having to configure tools or instructions for every request.
 
-**Format:** `*.chatmode.md` Markdown files.
+To create a `*.chatmode.md` Markdown file:
 
-**Workflow:**
-
-- Hit `Ctrl + Shift + P` -> `Chat: New Mode File`
-- Choose either `.github/chatmodes` (workspace) or `~/.config/VSCode/User/prompts` (User profile). Chat modes in workspace are looked for first.
+- Run `Chat: New Mode File` command
+- Choose either `.github/chatmodes` (workspace) or `~/.config/VSCode/User/prompts` (User profile).
+- Chat modes in workspace are looked for first.
 - Enter name.
 - Write `description:` and `tools:` in frontmatter, write _instructions_ in the body.
 - In Chat view, hit `Ctrl + .` to change chat mode.
-- Manage existing chat modes with `Ctrl + SHift + P` -> `Chat: Configure Chat Modes` command.
+- Manage existing chat modes with `Chat: Configure Chat Modes` command.
 
-**Use cases:**
+Use cases:
 
 - `Planning` mode: consists of read-only tools `codebase`, `fetch`, `search`, etc. to generate implementation plans.
 - `Research` mode: consists of read-only tools: `fetch`, tec. to explore new tech stack or gather information.
 - `Front-end Developer` mode: AI has read-write access to the code related to front-end development.
 
-**Structure and Examples:**
-
-`plan.chatmode.md`
+Structure:
 
 ```yml
+# plan.chatmode.md
 ---
 description: Generate an implementation plan for new features or refactoring existing code.
 tools: ["codebase", "fetch", "search"] # built-in tool, tool sets, MCP tools, Extension tools
@@ -431,7 +528,7 @@ Apply the [general coding guidelines](./general-coding.instructions.md) to all c
   - Implement logging and monitoring for security events
   ```
 
-### Indexing mechanism
+### [Indexing mechanism](https://code.visualstudio.com/docs/copilot/reference/workspace-context)
 
 There are three types of indexes, ordered from least to most robust:
 

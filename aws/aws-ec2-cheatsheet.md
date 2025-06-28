@@ -6,22 +6,31 @@ The reason that I'm using AWS is because Cloudflare doesn't have compute engine 
 
 <!-- tl;dr ends -->
 
+## Table of Contents
+
+- [Free Tier quotas](#free-tier-quotas)
+- [Best practice](#best-practice)
+- [Install FFmpeg inside AWS EC2 using Amazon Linux 2023](#install-ffmpeg-inside-aws-ec2-using-amazon-linux-2023)
+- [IP address](#ip-address)
+  - [Dynamic IPv4](#dynamic-ipv4)
+  - [Static IPv4](#static-ipv4)
+
 ## Free Tier quotas
 
 The tier type for AWS EC2 is 12 months. Be sure to migrate to a new account by next year.
 
-| Resource | t2.nano | t3.nano |
-| --- | --- | --- |
-| Region | All regions | Same |
-| Availability | 750 hours/month | Same |
-| vCPU | 1 | 2 |
-| RAM (GiB) | 0.5 | 1 |
-| CPU credits/hour | 6 | Same |
-| Maximum CPU credits | 144 (24 hours non-use) | 288 (48 hours non-use) |
-| Egress | 100GB/month | Same |
-| Unlimited mode default | No | Yes (**TURN IT OFF**) |
-| Public IPv4 | 750 hours/month | Same |
-| Public IPv6 | Free (for now) | Same |
+| Resource               | t2.nano                | t3.nano                |
+| ---------------------- | ---------------------- | ---------------------- |
+| Region                 | All regions            | Same                   |
+| Availability           | 750 hours/month        | Same                   |
+| vCPU                   | 1                      | 2                      |
+| RAM (GiB)              | 0.5                    | 1                      |
+| CPU credits/hour       | 6                      | Same                   |
+| Maximum CPU credits    | 144 (24 hours non-use) | 288 (48 hours non-use) |
+| Egress                 | 100GB/month            | Same                   |
+| Unlimited mode default | No                     | Yes (**TURN IT OFF**)  |
+| Public IPv4            | 750 hours/month        | Same                   |
+| Public IPv6            | Free (for now)         | Same                   |
 
 ## Best practice
 
@@ -61,7 +70,7 @@ cd /tmp/ffmpeg
   --enable-libfreetype \
   --disable-static \
   --enable-shared \
-  --enable-rpath 
+  --enable-rpath
   # --enable-gpl \
   # --enable-version3 \
   # --enable-nonfree

@@ -3,5 +3,7 @@ __pycache__
 .env
 .logs
 tils.db
+.tmp
+.memory-bank
 
 *.d2

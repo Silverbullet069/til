@@ -1,51 +1,556 @@
-# Docker Image Building Best Practices
+# Docker Build
 
 <!-- tl;dr starts -->
 
-How to build Docker images for multiple environments with maximum performance and tightest security?
+What are the best practices to build a Docker image?
 
 <!-- tl;dr ends -->
 
-## General knowledge
+## List of my accumulated best practices
 
-### Dockerfile frontend parser
+- **Compatibility:** Code must run reliably within system under all circumstances. Alpine-based image is very different from Debian-based image and is more error-prone.
+- **Security-first**:
+  - Always use base images from trusted source: Docker Official Images, Docker Verified Publisher and Docker-Sponsored Open Source.
+  - Create a new user with minimal privilege to run the program.
+- **Lightweight**: Production image must be minimal.
+- **Performant:** Process manager tools such as `pm2` can run NodeJS application much faster.
+- **Single Responsibility**: ONE production image == ONE application.
+- Some tool is more optimized when a specific environment variable is set to `production` (e.g. `NODE_ENV` in [Express](https://expressjs.com/en/advanced/best-practice-performance.html#set-node_env-to-production))
+- **Deterministic base images**:
+  - Avoid using `:latest` tag for production base image. It creates inconsistency and non-deterministic between code and system subsequent builds.
+  - Avoid using `:alpine` variants. Beside its small digital footprint, its behavior is quite unpredictable.
+    => Some popular Docker image provides `:slim` tag variants.
+  - Some are based on full-fledged OSes with full of unnecessary libraries and tools. More digital footprint = More attack vector + More space occupied = More time to download things = More time to build image overall.
+  - Use Docker image ingest to achieve the most deterministic build. However, it could be confusing or counterproductive for some image static scanning tools who might not know how to interpret this image. E.g. Tag + SHA256 `FROM node:22.14.0-bookworm-slim@sha256:1c18d9ab3af4585870b92e4dbc5cac5a0dc77dd13df1a5905cea89fc720eb05b`
+- **Deterministic system dependency**: package for system should be pinned (e.g. `RUN apt-get update && apt-get install -y curl=7.68.0-1ubuntu2.12`)
+- **Deterministic build artifacts:** use lock files (NPM `package-lock.json`, Yarn `yarn.lock`, PIP `requirements-lock.txt`, ...) when create build image.
+- **Flexibility:** Using `:latest` is not a bad practice for slim base images that are tightly controlled, revied thoroughly and therefore unlikely to cause inconsistent behavior.
+  However, there are only some image families matches the description: [Alpine](https://hub.docker.com/_/alpine), [Scratch](https://hub.docker.com/_/scratch) and [Distroless](https://github.com/GoogleContainerTools/distroless)
 
-When building images using Docker, BuildKit loads a frontend to parse your Dockerfile. This frontend can came:
+## Cheatsheet
 
-- Internally from your container images. I bet most Docker Official Images have one embedded
-- Externally by specifying `syntax` directive, pointing to the specific image (yeah the frontend came from an image)
-  ```Dockerfile
-  # syntax=docker/dockerfile:1      # MOST RECOMMENDED, updated with the latest 1.x.x minor and patch release.
-  # syntax=docker/dockerfile:1.2    # updated with the latest 1.2.x patch release, stops when 1.3.0 roll out.
-  # syntax=docker/dockerfile:1.2.1  # immutable, never updated
-  # syntax=docker.io/docker/dockerfile:1
-  # syntax=example.com/user/repo:tag@sha256:abcdef...
-  ```
+### `.dockerignore`
 
-Using custom Dockerfile, you will get:
+```dockerignore
+# ...everything inside .gitignore
 
-- Use the latest features and get auto bug fixes without updating Docker daemon.
-- Enforce Dockerfile frontend consistency between users.
-- Try out new features before they are integrated in Docker daemon.
-- (Advanced) Build your own Dockerfile frontend with custom features
+Dockerfile
+.dockerignore
+.git          # unless performing git operations while building
+build         # build artifacts
+node_modules  # vendor directories for package managers
+```
 
-Personally, I don't need it. All of my images are derived from base images with high maturity and often get updated.
+---
 
-### Cache Invalidation
+### Use Docker as a sandbox to run a NodeJS CLI
 
-When you're building the same Docker image multiple times, you will need to know how to optimize the build cache in order to make the builds run fast.
+```Dockerfile
+FROM node:lts-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+# Install global package as root, then switch to non-privileged user
+RUN npm install -g @upstash/context7-mcp && \
+  npm cache clean --force && \
+  chown -R node:node /app
+USER node
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+---
+
+### Containerize a NodeJS application
+
+[From Liran Tal, Yoni Goldberg, 10 best practices to containerize NodeJS web application with Docker](https://snyk.io/blog/10-best-practices-to-containerize-nodejs-web-applications-with-docker/)
+
+```Dockerfile
+# build
+FROM node:latest AS build
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init
+WORKDIR /usr/src/app
+COPY package*.json /usr/src/app/
+# npm v10.9.2
+RUN --mount=type=secret,mode=0644,id=npmrc,target=/usr/src/app/.npmrc npm ci --only=production
+
+# production
+FROM node:20.9.0-bullseye-slim
+ENV NODE_ENV=production
+COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
+USER node
+WORKDIR /usr/src/app
+COPY --chown=node:node --from=build /usr/src/app/node_modules /usr/src/app/node_modules
+COPY --chown=node:node . /usr/src/app
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["node", "server.js"]
+
+# Build the production image with the following command:
+# docker build . -t production:latest --secret id=npmrc,src=.npmrc
+```
+
+---
+
+[From abstractvector's Lightweight node.js Dockerfile "](https://gist.github.com/abstractvector/ed3f892ec0114e28b3d6dcdc4c39b1f2)
+
+```dockerignore
+# ... everything inside .gitignore
+
+.dockerignore
+node_modules
+npm-debug.log
+Dockerfile
+.git
+.gitignore
+.npmrc
+```
+
+```Dockerfile
+#syntax=docker/dockerfile:1                           # most recommended, update range: 1.x.x
+#syntax=docker/dockerfile:1.2                         # update range: 1.2.x
+#syntax=docker/dockerfile:1.2.1                       # never updated, immutable
+#syntax=docker.io/docker/dockerfile:1
+#syntax=example.com/user/repo:tag@sha256:abcdef...    # custom frontend parser
+
+ARG ALPINE_VERSION=3.21
+ARG NODE_VERSION=22
+
+# ============================================================================ #
+# Stage 1: Deps (Cache-preserving image)
+# ============================================================================ #
+FROM alpine:${ALPINE_VERSION} AS deps
+# --no-cache: prevent leftover cache files from polluting image layer
+RUN apk update && apk --no-cache add jq
+# changes to property other than  cause cache invalidation
+#
+COPY package.json .
+COPY package-lock.json .
+# extract "dependencies" and "devDependencies" in package.json
+RUN (jq '{ dependencies, devDependencies }') < package.json > deps.json
+# arbitrarily set the version to v1.0.0 in package-lock.json
+# prevent build cache invalidation
+RUN (jq '.version = "1.0.0"' | jq '.packages."".version = "1.0.0"') < package-lock.json > deps-lock.json
+
+# ============================================================================ #
+# Stage 2: Dev
+# ============================================================================ #
+
+FROM node:${NODE_VERSION}-bookworm-slim AS dev
+WORKDIR /app
+COPY --from=deps deps.json ./package.json
+COPY --from=deps deps-lock.json ./package-lock.json
+# cache files and directories between build stages
+RUN --mount=type=cache, target=/app/.npm \
+  npm set cache /app/.npm && \
+  npm install
+# make sure to maintain .dockerignore
+COPY . .
+CMD ["npm", "run", "dev"]
+
+# ============================================================================ #
+# Stage 3: Build (Cache-preserving image)
+# ============================================================================ #
+
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS build
+#RUN apk update && apk add --no-cache dumb-init
+WORKDIR /app
+COPY --from=deps deps.json ./package.json
+COPY --from=deps deps-lock.json ./package-lock.json
+RUN --mount=type=cache, target=/app/.npm --mount=type=secret,mode=0644,id=npmrc,target=/app/.npmrc \
+  npm set cache /app/.npm && \
+  npm ci --only=production
+
+# Copy specific assets
+COPY public/ public/
+COPY src/ src/
+COPY webpack/ webpack/
+COPY package.json .
+# or Copy everything (make sure to maintain .dockerignore)
+#COPY . .
+
+ENV NODE_ENV=production
+RUN npm run build
+
+# Run the command to build this image
+# docker build . -t <image-name>:<tag> --secret id=npmrc,src=.npmrc
+
+# ============================================================================ #
+# Stage 4: Production
+# ============================================================================ #
+
+# For Node, an up-to-date, Debian-based, slim distribution, LTS Node.js runtime version
+FROM node:${NODE_VERSION}-bookworm-slim
+#FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION}
+
+LABEL maintainer="silverbullet069"
+LABEL description="Containerized environment for NodeJS application"
+LABEL version="1.0.0"
+LABEL project="nodejs"
+LABEL dockerfile-location="/abs/path/to/dir"
+LABEL last-updated="2025-06-27"
+LABEL rebuild-command="docker build . -t silverbullet069/<image-name>:<tag>"
+
+#COPY --from=build /usr/src/dumb-init /usr/bin
+RUN npm install -g pm2
+
+WORKDIR /app
+COPY --chown=node:node --from=build /app/dist ./dist
+COPY --chown=node:node --from=build /app/package.json .
+# env should be specified at runtime, not build time
+# use Docker Secrets, AWS System Manager Parameter Store + AWS IAM, AWS AppConfig, ...
+
+ENV NODE_ENV=production
+ENV PORT=80
+
+USER node
+
+# implement a health check
+# unexpected behavior might happen: backend service didn't produce anything when an API is called yet the process keeps running
+# monitoring service can't identify critical-level error
+# NOTE: implement a health check API endpoint `/health` or `/monitoring`
+# NOTE: this instruction is ignored in K8s.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:3000/health || exit 1
+
+#ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+#CMD ["node", "dist/server"]
+CMD ["pm2-runtime", "start", "dist/server"]
+```
+
+<!-- TODO: read https://snyk.io/blog/ten-npm-security-best-practices/ -->
+
+---
+
+### Containerize a Python application
+
+[Liran Tal, Daniel Campos Olivares, Snyk Blog "Best practices for containerizing Python applications with Docker"](https://snyk.io/blog/best-practices-containerizing-python-docker/)
+
+```py
+# Flask
+@app.route('/health', methods=['GET'])
+def health():
+	# Handle here any business logic for ensuring you're application is healthy (DB connections, etc...)
+    return "Healthy: OK"
+```
+
+```Dockerfile
+# ============================================================================ #
+# Stage 1: Build
+# ============================================================================ #
+FROM python:3.13-slim-bookworm as build
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends build-essential gcc && \
+  rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+# use virtual environment inside container
+RUN python -m venv .venv
+ENV PATH="/app/.venv/bin:$PATH"
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Production
+FROM python:3.13-slim-bookworm
+RUN groupadd -g 1000 python && useradd -r -u 1000 -g python python
+RUN mkdir /app && chown python:python /app
+WORKDIR /app
+COPY --chown=python:python --from=build /app/.venv ./.venv
+COPY --chown=python:python . .
+ENV PATH="/app/.venv/bin:$PATH"
+USER 1000
+# implement a health check API endpoint `/health` (or `/monitoring`)
+# container is automatically restarted if unresponsed
+# NOTE: HEALTHCHECK directives are ignored in K8s.
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD curl -f http://localhost:5000/health
+CMD ["gunicorn", "--bind", "0.0.0.0:5000"]
+```
+
+---
+
+### Containerize a Golang application
+
+```Dockerfile
+# ============================================================================ #
+# Stage 1: Build
+# ============================================================================ #
+
+FROM golang:1.24 AS build
+LABEL maintainer="silverbullet069" \
+      description="Secure and optimized Dockerfile for Golang application"
+WORKDIR /app
+# dependency caching
+COPY go.mod go.sum ./
+# download dependency
+RUN go mod download
+# copy source code (make sure to maintain .dockerignore)
+COPY . .
+# build the static-linked binary
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main .
+
+# ============================================================================ #
+# Stage 2: Production
+# ============================================================================ #
+
+# For Scratch, you must manually create non-privileged user
+#FROM scratch:latest
+FROM gcr.io/distroless/static-debian12:nonroot
+LABEL version="1.0.0"
+WORKDIR /app
+COPY --from=build /app/main .
+USER nonroot:nonroot
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s \
+  CMD [ "curl", "-f", "http://localhost:8080/health" ]
+CMD ["./main"]
+```
+
+---
+
+### Docker CLI
 
 ```sh
-# syntax=docker/dockerfile:1
-FROM ubuntu:latest
+# Create a simple sandbox
+# --user: if you're running Rootless Docker, the host ownership is very different
+docker run \
+  --name="image_name" \
+  --init \
+  --rm \
+  --user="$(id -u):$(id -g)" \
+  --read-only  \
+  --network none \
+  --security-opt=no-new-privileges:true \
+  --volume="${PWD}:/app" \
+  --workdir="/app" \
+  # an alpine-based iamge
+  silverbullet069/image_name:latest \
+  "$@"
+```
 
+## Dockerfile instructions
+
+### Frontend parser
+
+Docker loads a frontend parser to parse the Dockerfile. This parser can come from the base image internally, or externally using `syntax` directive. Choose parser according to your use cases:
+
+```Dockerfile
+# syntax=docker/dockerfile:1      # MOST RECOMMENDED, updated with the latest 1.x.x minor and patch release.
+# syntax=docker/dockerfile:1.2    # updated with the latest 1.2.x patch release, stops when 1.3.0 roll out.
+# syntax=docker/dockerfile:1.2.1  # immutable, never updated
+# syntax=docker.io/docker/dockerfile:1
+# syntax=example.com/user/repo:tag@sha256:abcdef...
+```
+
+- Latest parser allows you to try out new features and get bug fixes without needing to update Docker daemon.
+- Immutable parser enforce parsing behavior consistency.
+
+### ADD and COPY
+
+Use `COPY` for copying local files and directories ("build contexts").
+Use `ADD` only when you need its extra features (remote URLs, auto-extracting archives, ...).
+DO NOT use it for files that would be deleted later.
+
+```Dockerfile
+# fetch a remote HTTPS file
+ADD https://example.com/config.yaml /etc/myapp/config.yaml
+
+# fetch a Git URL
+ADD git://github.com/example/repo.git /src/repo
+
+# from the build context
+COPY ./app /app
+
+# from multi-stage builds
+COPY --from=build /app/dist /app
+
+# ============================================================================ #
+
+# Fetch a remote archive, checksuming then extract
+ADD --checksum=sha256:0123456789abcdef... https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh /app/
+
+# use curl, wget to fetch a remote archive in host system with file integrity checking
+COPY files.tar.gz /app/
+RUN tar -xvzf /app/files.tar.gz -C /app/
+
+# better: temporately copy files from build context using bind mount. No leftover files in image layer
+RUN --mount=type=bind,source=files.tar.gz,target=/tmp/files.tar.gz \
+    tar -xvzf /tmp/files.tar.gz -C /app/
+    pip install --requirement /tmp/requirements.txt
+```
+
+### LABEL
+
+Help organize images by project, record license info, aid in automation, ...
+
+```Dockerfile
+FROM node:lts-alpine
+
+LABEL maintainer="silverbullet069"
+LABEL description="Containerized environment for NodeJS application"
+LABEL version="1.0.0"
+LABEL project="nodejs"
+LABEL dockerfile-location="/abs/path/to/dir"
+LABEL last-updated="2025-06-27"
+LABEL rebuild-command="docker build . -t silverbullet069/<image-name>"
+```
+
+### RUN
+
+There are two syntaxes:
+
+- **Exec form**: `RUN ["fish", "-c", "echo", "Hello, World"]`
+- **Non-exec form**: `RUN echo "Hello, World"`
+
+By checking `docker image history <image-name>:<tag>`, we see that **Non-exec form** use `/bin/sh -c`
+
+```sh
+docker image history ubuntu
+
+# IMAGE          CREATED       CREATED BY                                      SIZE      COMMENT
+# b1d9df8ab815   6 weeks ago   /bin/sh -c #(nop)  CMD ["/bin/bash"]            0B
+# ...
+```
+
+`RUN` should always be run in Non-exec form.
+
+`/bin/sh -c` evaluates exit code of the last operation in a pipeline to determine success as a whole. It's the same behavior of `set +o pipefail`.
+
+```Dockerfile
+# success even if wget failed
+RUN wget -O - https://example.com | wc -l > /number
+# fix
+RUN set -o pipefail && wget -O - https://example.com | wc -l > /number
+```
+
+**Tips:** split long line using `\` or Heredoc, short-circuiting multiple commands using `&&`. Sort lines alphabetically
+
+```Dockerfile
+# NOTE: add `rm -rf /var/lib/apt/lists/*` to all custom images use Debian-based image
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      package-alpha \
+      package-bravo \
+      package-charlie \
+      package-delta \
+      package-echo \
+      package-foo=x.x.* \
+    && rm -rf /var/lib/apt/lists/*
+    # && apt-get clean
+    # Official Debian/Ubuntu-based image automatically run `apt-get-clean`
+    # cre: https://ubuntu.com/blog/we-reduced-our-docker-images-by-60-with-no-install-recommends
+```
+
+Force cache busting - prevent using cache layers. It's used to install latest package versions.
+
+```Dockerfile
+RUN --no-cache ...
+```
+
+There are 3 common mounts
+
+```Dockerfile
+RUN --mount=type=secret ...
+RUN --mount=type=bind ...
+RUN --mount=type=cache ...
+```
+
+Using bind mounts and cache mounts to implement Hot Reloading behavior:
+
+<!-- prettier-ignore -->
+| Mount type | `type=bind` | `type=cache` |
+| --- | --- | --- |
+| Purpose | Accessing existing files | Speed up repeated operations, reduce network bandwidth |
+| Persistency between build stages | No | Yes |
+| Persistency in the final image | No | No |
+| Default mode | Read-only | Read-write |
+| Source | Build context, build stages | New empty directory |
+| Use case | Build artifacts, config files | Package managers, build tools |
+
+### CMD
+
+- Run the software contained in image, along with arguments.
+- It has two syntaxes just like `RUN`, however it should always be run in _exec_ form: `CMD ["executable", "param1", "param2"]`
+- Most cases, in _exec_ form, `CMD` should be given an interactive shell so when users run `docker run -it [IMAGE]` they can get dropped into a usable shell.
+- Other rare cases, `CMD` _exec_ form, specifying parameters only when used in conjection with `ENTRYPOINT`.
+
+```Dockerfile
+CMD ["perl", "-de0"]
+CMD ["python"]
+CMD ["php", "-a"]
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "node"]
+CMD ["param1", "param2"]
+```
+
+### EXPOSE
+
+- Use common, traditional port for application.
+- Don't needed if users execute `docker run -p|--port` option.
+
+### ENV
+
+> [!CAUTION]
+>
+> It's recommended not to use `ENV` for secret due to security reason.
+
+`ARG` vs `LABEL` vs `ENV`:
+
+- `ARG` isn't persist in the final image build, only used during build time.
+- `LABEL` is for metadata (versioning, description, maintainer)
+- `ENV` for configuring execution environment for builds specific to services in container.
+
+Use cases:
+
+- Update `PATH` environment variable (best practice is to use absolute path all the time)
+- Set commonly used version numbers.
+- Set and unset environment variable must stay on the same `RUN` instruction, since each instruction creates an immutable layer that can't be changed even in future layer.
+
+### [ENTRYPOINT](https://docs.docker.com/reference/dockerfile/#entrypoint)
+
+Set the image's main command, use in junction to `CMD`, which specifies default flags (argument and options).
+
+### [VOLUME](https://docs.docker.com/reference/dockerfile/#volume)
+
+- Create anonymous volume at build time that is fully managed by Docker.
+- Expose database storage, configuration storage, files and folders created by Docker containers.
+- It's also a form of docs indicating users that certain files and directories are intended for persistency.
+
+You can't mount a host directory from within the Dockerfile since host directory meant to be available during container runtime and not during build time.
+
+### USER
+
+By default, all Docker container are run using root privillege. To ensure or services that can be run without privileges:
+
+```Dockerfile
+# Alpine
+RUN addgroup -g 1000 tailscale && \
+    adduser -h "/home/tailscale" -G tailscale -D -u 1000 tailscale
+# Debian
+RUN groupadd -r postgres && useradd --no-log-init -r -g postgres postgres
+# Use new user name (and user group)
+USER postgres:postgres
+```
+
+### WORKDIR
+
+- Always use absolute paths for `WORKDIR`.
+- Avoid using "proliferating" instructions such as `RUN cd ... && do-something`. Hard to read, troubleshoot and maintain.
+
+### ONBUILD
+
+Only used when you're using multiple `Dockerfile`.
+
+## Cache Invalidation
+
+Knowing how to optimize the build cache can make the process of building the same Docker image faster.
+
+**Example:** Containerize C application
+
+```Dockerfile
+FROM ubuntu:latest
 RUN apt-get update && apt-get install -y build-essentials
 COPY main.c Makefile /src/
 WORKDIR /src/
 RUN make build
 ```
 
-Each instruction translates to a layer in final image. Image layers are like a stack, with each layer adding more content on top of the layers that came before it.
+Analogy specking, a Dockerfile is like a stack, each directive corresponds to a layer inside that stack. Each layer adds new content on top of the layers that came before it.
 
 ```txt
 +------------------------------+
@@ -63,11 +568,9 @@ Each instruction translates to a layer in final image. Image layers are like a s
 +------------------------------+
 ```
 
-Whenever a layer changes, that layer will need to be re-built.
+Each layer is deemed cached, and will be reused for subsequent build. However, if any of the layer have its content changed, that layer must be rebuilt, causing subsequent layers to be rebuilt as well (or have their cache "invalidated")
 
-> E.g. if `main.c` and/or `Makefile` are changed, the `COPY` instruction will have to run again in order for those changes to appear in the image (or "invalidate" the cache for this layer).
-
-If a layer changes, **all other layers that come AFTER it have their cache invalidated as well**.
+Imagine I make some changes to `main.c` and `Makefile` at layer 3, the instructions correspond to layer 3,4,5 have to be run.
 
 ```
 +------------------------------+
@@ -85,27 +588,33 @@ If a layer changes, **all other layers that come AFTER it have their cache inval
 +------------------------------+
 ```
 
-The instructions correspond to these layers have to be rerun, cost subsequent builds precious time.
+For `ADD`, `COPY` and `RUN --mount=type=bind`: File's content is ignored during cache checking, instead the **file's metadata** (except time modification) is used to determine a cache match.
 
-### Which instructions cause Cache Invaliation?
+Sometimes, cache invalidation is a must. System update `RUN` instructions such as `RUN apt-get update -y`, `RUN apk add curl` use the command string itself to do cache checking, the result is always a cache hit. To invalidate the cache:
 
-For the `ADD`, `COPY` and `RUN --mount=type=bind` instructions, the builder calculates checksum from file metadata to determine whether cache is valid. Cache is invalidated if the file metadata has changed for any of the files involved
+- Run `docker builder prune` to clear the build cache.
+- Run `docker build --no-cache` or `docker build --no-cache-filter`, the latter option lets you specify a specific build stage to invalidate the cache.
 
-> **NOTE:** time modification doesn't affect metadata checksum.
+**Exception:** for `RUN --mount=type=secret,id=TOKEN,env=TOKEN` instruction, build secrets aren't part of the build cache and therfore its changes don't cause cache invalidation.
 
-Cache checking doesn't look at the changes of files' content to determine a cache match.
+To force cache invaliation, use `docker build --build-arg CACHEBUST=1`
 
-> `RUN apt-get update -y` instruction use command string itself to find a match, that's why you can easily get outdated files from `apt` in subsequent builds since it's always a cache hit.
+## Image tag convention
 
-> `RUN apk add curl` shares the same fate.
+- Release new version through CI/CD ? Automation tagging.
+- Different environments => Different tags.
+- If you create 1 Git tag per release, use that Git tag as Docker image tag.
+  E.g. Git tag `v1.2.3` => Tag `:1.2.3`.
+- If you follow a branching strategy for software development, branch names can be used to manage Docker image tags.
+  E.g. `git checkout -b release/1.2.3` => Tag `:1.2.3`.
+- If you host unstable release, use date-based tags for Docker images.
+  E.g. if release date is _2023-06-30_ and it's version `.1.2.3` now => tag `1.2.3-20230630`.
+- If you host stable release, use `:latest` tag, this allows you to easily refer to the latest version without specifying the exact version number.
+  > However, some say you should avoid the ambiguous `:latest` tag in production.
+- If each Git commit is a release, use Git commit hash.
+  E.g. `1.2.3-f8c4aa1`
 
-To force a re-execution of the `RUN` instruction and cause cache invalidation, you can:
-
-- Make sure a layer before it has changed
-- Clear the build cache ahead of the build using `docker builder prune`
-- Use `docker build --no-cache` or `--no-cache-filter`, the latter option lets you specify a specific build stage to invalidate the cache.
-
-For `RUN --mount-type-secret,id=TOKEN,env=TOKEN` instruction, build secrets aren't part of the build cache. Therefore build secrets changes doesn't result in cache invalidation. To force cache invaliation, use `docker build --build-arg CACHEBUST=1`
+Consistency and clariry are essential to avoid confusion, and ensure smooth version control of Docker images. Although the above convention is great, you must choose a tagging strategy that aligns with your team's workflow and requirements.
 
 ## FOURTEEN Best Practices for building Docker images
 
@@ -644,183 +1153,6 @@ For applications that required maximum reliability, refrain using `:latest` tag.
 
 => Recommendation: enforce version pinning at **major and minor version** (e.g. `FROM alpine:3.20`) or use Docker Scout's Remediation (at this point of writing, it's still in Beta). It can warn and prompt user to update when there is a new version.
 
-## Image Tagging Best Practices
-
-- Release new version through CI/CD ? Automation tagging.
-- Different environments => Different tags.
-- If you create 1 Git tag per release, use that Git tag as Docker image tag.
-  E.g. Git tag `v1.2.3` => Tag `:1.2.3`.
-- If you follow a branching strategy for software development, branch names can be used to manage Docker image tags.
-  E.g. `git checkout -b release/1.2.3` => Tag `:1.2.3`.
-- If you host unstable release, use date-based tags for Docker images.
-  E.g. if release date is _2023-06-30_ and it's version `.1.2.3` now => tag `1.2.3-20230630`.
-- If you host stable release, use `:latest` tag, this allows you to easily refer to the latest version without specifying the exact version number.
-  > However, some say you should avoid the ambiguous `:latest` tag in production.
-- If each Git commit is a release, use Git commit hash.
-  E.g. `1.2.3-f8c4aa1`
-
-_Consistency_ and _clariry_ are essential to avoid confusion, and ensure smooth version control of Docker images.
-
-Be that as it may, you must choose a tagging strategy that aligns with your team's workflow and requirements.
-
-## Dockerfile instructions
-
-### ADD and COPY
-
-`COPY`: copy files from _build context_ or a stage in multi-stage build using `--from=` option.
-`ADD`:
-
-- Fetch files from remote HTTPS or Git URLs.
-- Better than `wget` or `curl`
-- Checksum validation
-- Support parsing branches, tags and subdirectories.
-
-> **NOTE:** don't use `ADD` for files that will be deleted later.
-
-Sometimes you just want to temporately copy files from _build context_ to your image without persistency, use bind mount instead of `COPY`. It's considered to be more efficient that `COPY`:
-
-```Dockerfile
-RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
-    pip install --requirement /tmp/requirements.txt
-```
-
-### LABEL
-
-Help organize images by project, record license info, aid in automation, ...
-
-### RUN
-
-```Dockerfile
-# non exec form (default)
-# /bin/sh -c is used
-
-# > docker image history ubuntu
-# IMAGE          CREATED       CREATED BY                                      SIZE      COMMENT
-# b1d9df8ab815   6 weeks ago   /bin/sh -c #(nop)  CMD ["/bin/bash"]            0B
-# ...
-
-# exec form
-# explicitly choose shell
-RUN ["OTHER_SHELL", "param1", "param2"]
-
-# /bin/sh -c interpreter evaluates exit code of the last operation in the pipe to determine success
-# if `wget` failed yet `wc -l` succeed, the build step succeed
-RUN wget -O - https://example.com | wc -l > /number
-# if `wget` failed regardless `wc -l` succeed or not, the build step failed
-RUN set -o pipefail && wget -O - https://example.com | wc -l > /number
-
-# split long line using \ or heredoc
-# always run `apt-get-update` and `apt-get install -y --no-install-recommends` together using &&
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-      package-bar \
-      package-baz \
-      package-foo=x.x.* \
-    && rm -rf /var/lib/apt/lists/*
-    # cre: https://ubuntu.com/blog/we-reduced-our-docker-images-by-60-with-no-install-recommends
-
-
-# Official Debian/Ubuntu-based image automatically run `apt-get-clean`
-#RUN apt-get clean
-
-# Cache Busting - prevent using cache layers
-# Install latest package versions, with version pinning, without manual intervention.
-RUN --no-cache ...
-
-# Hot reloading
-RUN --mount=type=bind ...
-RUN --mount=type=cache ...
-```
-
-- Similarity: Both aren't included in the final iamge
-- Differences:
-
-<!-- prettier-ignore -->
-| Feature | `type=bind` | `type=cache` |
-| --- | --- | --- |
-| Purpose | Accessing existing files | Speed up repeated operations, reduce network bandwidth |
-| Persistence between build stages | No | Yes |
-| Default mode | Read-only | Read-write |
-| Source | Build context (set of files that your build can access), or other stages | New empty directory |
-| Common use | Access build artifacts, config files, ... |  Package managers, build tools |
-
-### CMD
-
-- Run the software contained in image, along with arguments
-- Should always be run in _exec_ form: `CMD ["executable", "param1", "param2"]`
-- Most cases, in _exec_ form, `CMD` should be given an interactive shell so when users run `docker run -it [IMAGE]` they can get dropped into a usable shell.
-
-```Dockerfile
-CMD ["perl", "-de0"]
-CMD ["python"]
-CMD ["php", "-a"]
-```
-
-- Other rare cases, `CMD` _exec_ form, specifying parameters only when used in conjection with `ENTRYPOINT`.
-
-```Dockerfile
-CMD ["param1", "param2"]
-```
-
-### EXPOSE
-
-- Use common, traditional port for application.
-- Can be overriden if users execute `docker run -p` option.
-
-### ENV
-
-- Configure execution environment for builds specific to services in container.
-- Update `PATH` environment variable. Still I would like to use absolute path all the time.
-- Set commonly used version numbers.
-
-- This is different from `ARG` or `LABEL`:
-
-  - `ARG` isn't persist in the final image build, only used during build time, not recommended for passing secrets.
-  - `LABEL` is for metadata (versioning, description, maintainer)
-
-- Set and unset environment variable must stay on the same `RUN` instruction, since each instruction creates an immutable layer that can't be changed even in future layer.
-
-### [ENTRYPOINT](https://docs.docker.com/reference/dockerfile/#entrypoint)
-
-Set the image's main command, `CMD` only specifies default flags (argument and options)
-
-Used in combination with a helper script if the starting process requires more than 1 step.
-
-### [VOLUME](https://docs.docker.com/reference/dockerfile/#volume)
-
-Expose database storage, configuration storage, files and folders created by Docker containers.
-
-_Q: What is the benefits of specifying `VOLUME` instruction in `Dockerfile` when user can create whatever volumes that want?_
-A: It creates anonymous volume, fully managed by Docker. It's also a form of docs indicating users that certain files and directories are intended for persistency.
-
-You can't mount a host directory from within the Dockerfile since host directory meant to be available during container run-time and not during build.
-
-### USER
-
-By default, all Docker container are run using root privillege. To ensure or services that can be run without privileges:
-
-```Dockerfile
-# Create user and group:
-RUN groupadd -r postgres && useradd --no-log-init -r -g postgres postgres
-
-# Use new user name and user group for the remainder of the current stage
-USER postgres:postgres
-```
-
-Avoid using `sudo`. If you have to initialize daemon as `root`, but running it as non-root, use [tianon/gosu](https://github.com/tianon/gosu)
-
-Avoid switching `USER` back and forth to reduce layers and complexity.
-
-### WORKDIR
-
-Always use absolute paths for `WORKDIR`.
-
-Avoid using proliferating instructions such as `RUN cd ... && do-something`. Hard to read, troubleshoot and maintain.
-
-### ONBUILD
-
-Only used when you're using multiple `Dockerfile`.
-
 ## Reference
 
 - [Docker Docs's "Multi-stage Build"](https://docs.docker.com/build/building/multi-stage/)
@@ -828,3 +1160,4 @@ Only used when you're using multiple `Dockerfile`.
 - [Docker Docs's "Optimize for building in the cloud"](https://docs.docker.com/build-cloud/optimization/)
 - [Docker: Beginner to Pro's "Hot Reloading"](https://courses.devopsdirective.com/docker-beginner-to-pro/lessons/11-development-workflow/01-hot-reloading)
 - [Liran Tal, Yoni Golberg, "10 best practices to containerize Node.js web applications with Docker"](https://snyk.io/blog/10-best-practices-to-containerize-nodejs-web-applications-with-docker/)
+- [Vũ Quốc, 2025-06-23, Các Phương Pháp Bảo Mật Dockerfile Thực Chiến](https://devops.vn/posts/cac-phuong-phap-bao-mat-dockerfile-thuc-chien/)

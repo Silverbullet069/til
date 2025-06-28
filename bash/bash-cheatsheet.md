@@ -1,4 +1,4 @@
-# Bash Best Practices
+# Bash Cheatsheet
 
 <!-- tl;dr starts -->
 
@@ -6,81 +6,100 @@
 
 <!-- tl;dr ends -->
 
-## Cheatsheet
-
-<!-- todo: clean the cheatsheet -->
+## Back to previous working directory
 
 ```bash
-
-    # String tests
-    [[ -z "${1-}" ]]     # String is empty (zero length)
-    [[ -n "${1-}" ]]     # String is non-empty (non-zero length)
-
-    # File existence tests
-    [[ -e "${1-}" ]]     # File exists (any type)
-    [[ -f "${1-}" ]]     # Regular file exists
-    [[ -d "${1-}" ]]     # Directory exists
-    [[ -L "${1-}" ]]     # Symbolic link exists
-    [[ -S "${1-}" ]]     # Socket exists
-    [[ -p "${1-}" ]]     # Named pipe (FIFO) exists
-    [[ -b "${1-}" ]]     # Block device exists
-    [[ -c "${1-}" ]]     # Character device exists
-
-    # File permission tests
-    [[ -r "${1-}" ]]     # File is readable
-    [[ -w "${1-}" ]]     # File is writable
-    [[ -x "${1-}" ]]     # File is executable
-    [[ -s "${1-}" ]]     # File exists and is not empty
-
-    # File ownership tests
-    [[ -O "${1-}" ]]     # File is owned by effective UID
-    [[ -G "${1-}" ]]     # File is owned by effective GID
-
-    # File attribute tests
-    [[ -u "${1-}" ]]     # File has setuid bit set
-    [[ -g "${1-}" ]]     # File has setgid bit set
-    [[ -k "${1-}" ]]     # File has sticky bit set
-
-    # File comparison tests
-    [[ "${file1}" -nt "${file2}" ]]  # file1 is newer than file2
-    [[ "${file1}" -ot "${file2}" ]]  # file1 is older than file2
-    [[ "${file1}" -ef "${file2}" ]]  # file1 and file2 are same file (hard links)
-
-    # Numeric comparisons
-    [[ "${1-}" -eq 0 ]]   # Equal to
-    [[ "${1-}" -ne 0 ]]   # Not equal to
-    [[ "${1-}" -lt 10 ]]  # Less than
-    [[ "${1-}" -le 10 ]]  # Less than or equal
-    [[ "${1-}" -gt 10 ]]  # Greater than
-    [[ "${1-}" -ge 10 ]]  # Greater than or equal
-
-    # String comparisons
-    [[ "${1-}" == "value" ]]    # String equality
-    [[ "${1-}" != "value" ]]    # String inequality
-    [[ "${1-}" < "value" ]]     # String less than (lexicographic)
-    [[ "${1-}" > "value" ]]     # String greater than (lexicographic)
-
-    # Pattern matching
-    [[ "${1-}" == pattern* ]]   # Glob pattern matching
-    [[ "${1-}" =~ regex ]]      # Regular expression matching
-
-    # Combined tests
-    [[ -n "${1-}" && -f "${1-}" ]]  # Non-empty and is a file
-    [[ -z "${1-}" || ! -e "${1-}" ]] # Empty or doesn't exist
+cd -
 ```
 
-## Naming conventions
-<!-- cre: https://github.com/koalaman/shellcheck/issues/1411#issuecomment-1291949787 -->
+## Parameter expansions
 
-## Variables
+```bash
+# if args is set and not null, subtitute its value. Otherwise, substitute nothing
+${args:+$args}
+
+# if args is set (even if empty), substitute its value. If args is unset, substitute nothing
+# NOTE: args="" still get substituted.
+${args-}
+```
+
+## If `[[` and `test` statements
+
+> [!TIP]
+>
+> `test` and `[[` are interchangbly.
+
+```bash
+# String tests
+[[ -z "${1-}" ]]     # String is empty (zero length)
+[[ -n "${1-}" ]]     # String is non-empty (non-zero length)
+
+# File existence tests
+[[ -e "${1-}" ]]     # File exists (any type)
+[[ -s "${1-}" ]]     # File exists and is not empty (recommended)
+[[ -f "${1-}" ]]     # Regular file exists
+[[ -d "${1-}" ]]     # Directory exists
+[[ -L "${1-}" ]]     # Symbolic link exists
+[[ -S "${1-}" ]]     # Socket exists
+[[ -p "${1-}" ]]     # Named pipe (FIFO) exists
+[[ -b "${1-}" ]]     # Block device exists
+[[ -c "${1-}" ]]     # Character device exists
+
+# File permission tests
+[[ -r "${1-}" ]]     # File is readable
+[[ -w "${1-}" ]]     # File is writable
+[[ -x "${1-}" ]]     # File is executable
+
+# File ownership tests
+[[ -O "${1-}" ]]     # File is owned by effective UID
+[[ -G "${1-}" ]]     # File is owned by effective GID
+
+# File attribute tests
+[[ -u "${1-}" ]]     # File has setuid bit set
+[[ -g "${1-}" ]]     # File has setgid bit set
+[[ -k "${1-}" ]]     # File has sticky bit set
+
+# File comparison tests
+[[ "${file1}" -nt "${file2}" ]]  # file1 is newer than file2
+[[ "${file1}" -ot "${file2}" ]]  # file1 is older than file2
+[[ "${file1}" -ef "${file2}" ]]  # file1 and file2 are same file (hard links)
+
+# Numeric comparisons
+[[ "${1-}" -eq 0 ]]   # Equal to
+[[ "${1-}" -ne 0 ]]   # Not equal to
+[[ "${1-}" -lt 10 ]]  # Less than
+[[ "${1-}" -le 10 ]]  # Less than or equal
+[[ "${1-}" -gt 10 ]]  # Greater than
+[[ "${1-}" -ge 10 ]]  # Greater than or equal
+
+# String comparisons
+[[ "${1-}" == "value" ]]    # String equality
+[[ "${1-}" != "value" ]]    # String inequality
+[[ "${1-}" < "value" ]]     # String less than (lexicographic)
+[[ "${1-}" > "value" ]]     # String greater than (lexicographic)
+
+# Pattern matching
+[[ "${1-}" == pattern* ]]   # Glob pattern matching
+[[ "${1-}" =~ regex ]]      # Regular expression matching
+
+# Combined tests
+[[ -n "${1-}" && -f "${1-}" ]]  # Non-empty and is a file
+[[ -z "${1-}" || ! -e "${1-}" ]] # Empty or doesn't exist
+```
+
+## Naming convention
+
+### Variables
+
 - CLI command: `_cmd_` prefix
 - CLI option: `_option_` prefix
 - Fish argument: `_flag_` prefix
 
 ### Functions
-- Self-explanatory: `fn_` prefix
-- Pythonic way for an access specifer: `_` prefix
-- C++ way for names/identifiers reservation in standard: `__` prefix
+
+- Abbr: `fn_` prefix
+- Single leading underscore (Python): `_` prefix
+- Double leading underscore (C++, Fish): `__` prefix
 
 ## Strict mode
 
@@ -139,7 +158,7 @@ $ echo $?
 2
 ```
 
-### `IFS=` 
+### `IFS=`
 
 - Internal Field Seperator, or "delimiter", "word-splitting"
 - Which character will be used to define what is a word in Bash.
