@@ -8,18 +8,18 @@ Decap CMS is my go-to CMS solution for building personal web projects, as mentio
 
 ## Why I choose Decap CMS?
 
-It is a Git-based, open-source CMS.
+It is a Git-based, open-source, headless CMS.
 
-- Its content, alongside the code is stored inside GitHub. This enables content versioning, content updates handling directly in Git and mult-channel publishing (major providers such as Cloudflare, AWS, ...)
-- GitHub Actions - the CI/CD tool that's highly integrated with GitHub, can use content hosted on GitHub for remote build process.
-- It is framework-agnostic. It can be used with any static site generator.
-- It provides a web-based admin panel UI with robust editor and can be hosted on cloudf providers (either by Netlify which is supported officially or Cloudflare Developer Platform, my currently chosen vendor)
+- Store content along with code.
+- Enable content versioning, content updates handling on cloud providers using CI/CD pipeline built by GitHub Actions.
+- Framework-agnostic, can be used with any static site generator.
+- Provide a web-based admin panel UI with robust editor and can be also be hosted alongside the main site.
 
 ## What is it actually?
 
-At its core, Decap CMS is an open-source React application, that acts as a wrapper for the Git workflow, using GitHub, GitLab and Bitbucket API.
+At its core, Decap CMS is an open-source React application acting as a wrapper for the Git workflow, using GitHub, GitLab and Bitbucket API.
 
-Hooking Decap CMS to your website is basically adding a tool for content editors to make commits to the GitHub repository without touching code or learning Git and running Git CLI.
+Hooking Decap CMS to your website is basically adding a content editor that can make commits to GitHub without touching the codebase nor running Git CLI commands.
 
 _Pros:_
 
@@ -31,28 +31,33 @@ _Pros:_
 
 ## Releases
 
-There are 2 ways to update Decap CMS:
+Decap CMS is released on 2 platforms:
 
-1. Package Manager: `npm` and `yarn`.
-2. CDN: you can use and update your CMS through CDN like Unpkg by going into `admin/index.html` and update the `<script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js">`. It's recommended that you use `^3.0.0`, the CMS does all updates except major versions automatically, this ensures you always have the most advanced and reliable version
-   > Latest version until the time of writing this page is `3.6.2`.
+1. **Package Manager:** `npm` and `yarn`.
+2. **CDN:** add `<script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js">` tag into `admin/index.html`. It's recommended that you use `^3.0.0`, every the CMS is loaded you will see the latest minor/patch versions, ensure you have the most advanced and reliable version.
 
-## FOUR step of adding Decap CMS to your existing site
+> [!NOTE]
+>
+> Until the point of writing this TIL, the latest major version of Decap CMS is **3**.
 
-### 1. Install Decap CMS
+## Installation
 
-You can install Decap CMS via 2 methods, I chose the CDN method.
+Create a folder called `/admin` and placed in either 1 of 2 places:
+- SSG framework's output directory. (e.g. `/_site` for 11ty, `/public` for NextJS)
+- Root directory. Config the front-end framework to add `/admin` into the output directory during build.
 
-Create a folder called `/admin`. This folder consists of Decap CMS files that are sotred at the root of the published site.
-
-`/admin` can be placed in 2 places:
-
-- Inside static file generator's output directory. (e.g. for 11ty, it's `/_site`)
-- Root directory, but config the framework so `/admin` is copied into the output directory during build process (e.g. for 11ty, add this line into `eleventy.config.mjs`: `eleventyConfig.addPassthroughCopy("admin");`)
+```js
+// eleventy.config.mjs
+// ...
+eleventyConfig.addPassthroughCopy("admin");
+```
 
 Inside `/admin`, there are 2 files: `index.html` and `config.yml`
 
-- `admin/index.html` is the entry point for Decap CMS admin interface, it's a basic HTML file that loads the Decap CMS JS file. Users will navigate to `https://input-your-site-here.com/admin` to access it.
+1. `admin/config.yml`, the heart of Decap CMS.
+1. `admin/index.html`, the entry point of Decap CMS admin interface. 
+
+It's a basic HTML file that loads the Decap CMS JS file. Users will navigate to `https://input-your-site-here.com/admin` to access it.
 
 ```html
 <!DOCTYPE html>
@@ -68,33 +73,95 @@ Inside `/admin`, there are 2 files: `index.html` and `config.yml`
   </head>
 
   <body>
-    <!-- Include the script that builds the page and powers Decap CMS -->
-    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <script>
+    function loadFallbackScript() {
+      console.error("Failed to fetch jsDelivr. Fetching from unpkg...");
+      const unpkgScript = document.createElement('script');
+      unpkgScript.src = "https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js";
+      unpkgScript.onerror = () => {
+        console.error("Failed to fetch Decap CMS from both jsDelivr and unpkg!");
+        // Optionally notify the user or try a local fallback
+      };
+      document.body.appendChild(unpkgScript);
+    }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/decap-cms@3/dist/decap-cms.js" onerror="loadFallbackScript()"></script>
 
-    <!-- Should Unpkg be any issue, jsDelivr can be used as an alternative source -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/decap-cms@^3.0.0/dist/decap-cms.js"></script> -->
+    <!-- custom id widget -->
+    <!-- cre: https://github.com/decaporg/decap-cms/issues/1407#issuecomment-456714505 -->
+    <script>
+      CMS.registerWidget(
+        'nanoid',
+        createClass({
+          getDefaultProps: function () {
+            return {
+              value: ''
+            }
+          },
+          nanoid: (e = 21) => {
+            const a = "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";
+            let t = "", r = crypto.getRandomValues(new Uint8Array(e));
+            for (let n = 0; n < e; n++)
+              t += a[63 & r[n]];
+            return t;
+          },
+          componentDidMount: function () {
+            const value = this.props.value;
+            const onChange = this.props.onChange;
+            const nanoid = this.nanoid;
+
+            if (!value) {
+              onChange(nanoid());
+            }
+          },
+          render: function () {
+            const value = this.props.value;
+            const classNameWrapper = this.props.classNameWrapper;
+            const forID = this.props.forID;
+
+            return h('span', {
+              id: forID, className: classNameWrapper, style: {
+                opacity: 0.7
+              }
+            }, value);
+          }
+        })
+      );
+    </script>
   </body>
 </html>
 ```
 
-- `admin/config.yml` is the heart of DecapCMS installation.
+## Choose backend
 
-### 2. Choose backend for Decap CMS
+- Netlify and Netlify Identity: https://decapcms.org/docs/choosing-a-backend/
+- Cloudflare Pages: https://github.com/i40west/netlify-cms-cloudflare-pages
 
-Official documentation recommendeds using Netlify and Netlify Identity, but after reading [a blog post by Cassey Lottman about adding Decap CMS to 11ty](https://cassey.dev/11ty-on-cloudflare-pages/#decap-cms), I've found a way to [host the Decap CMS web-based UI on Cloudflare Pages](https://github.com/i40west/netlify-cms-cloudflare-pages).
+## [Decap CMS Configuration File Cheatsheet](https://decapcms.org/docs/configuration-options/)
 
-### 3. Configure Decap CMS
+**NOTE:** from now on, content file (or "Page", "Markdown file with frontmatter") is referred to as "Entry"
 
-There are a few options you should know.
 
 ```yml
 # when using the default proxy server port
 local_backend: true
-publish_mode: editorial_workflow # does not support in `local_fs` backend so it will switch to `simple` automatically
 
+# default, all entries created/modified are committed DIRECTLY into main branch
+# have more control 
+publish_mode: editorial_workflow # def="simple"
+
+# specify backend protocol
 backend:
-  name: git-gateway # specify backend protocol, Git Gateway is an open-source API that acts as a proxy between authenticated users of your site and the repository
-  # branch: main        # optional, def=master
+  name: git-gateway   # for GitHub + GitLab repo
+  branch: main        # default=master
+
+  # supported template tags:
+  # {{slug}}: the url-safe filename of the entry that changed
+  # {{collection}}: the value of the `label` or `label_singular` of the collection containing the entry that changed (it's the entry, not collection, that changed)
+  # {{path}}: the full path to the file changed
+  # {{message}} : the relevant message based on the current change (e.g. the `create` message when an entry is created)
+  # {{author-login}}: username of the account who made the change
+  # {{author-name}}: name in the user profile of the account who made the change, can be empty string if user doesn't set it
 
   commit_messages:
     create: "Create {{collection}} “{{slug}}” by {{author-name}}"
@@ -104,77 +171,96 @@ backend:
     deleteMedia: "Delete “{{path}}” by {{author-name}}"
     openAuthoring: "{{message}} by {{author-name}}"
 
-    # supported template tags:
-    # {{slug}}: the url-safe filename of the entry that changed
-    # {{collection}}: the value of the `label` or `label_singular` of the collection containing the entry that changed (it's the entry, not collection, that changed)
-    # {{path}}: the full path to the file changed
-    # {{message}} : the relevant message based on the current change (e.g. the `create` message when an entry is created)
-    # {{author-login}}: username of the account who made the change
-    # {{author-name}}: name in the user profile of the account who made the change, can be empty string if user doesn't set it
+# DecapCMS allow upload medias directly within editor, media from ALL collections
+# are saved under ONE directory
+# Typically, it's where your SSG expecting static files
+# NOTE: this setting is relative to the project root
+media_folder: "_site/images/uploads"
 
-# specify where to save uploaded files, it's relative to the project root
-media_folder: "src/images"
+# specify where the media files uploaded will be found in the published site
+# e.g. an image `john-wick.png` being uploaded by an image widget "avatar"
+# - the file will be saved at "_site/images/uploads/john-wick.png"
+# - the `avatar:` field for the entry, set to "/images/uploads/john-wick.png"
+# NOTE: if blank, inferred from `media_folder` with a starting slash `/` if not specified
+public_folder: "/images/uploads"
 
-# indicates where the media files are found in the published site
-# <img> tag `src` attribute use this field, that's why we usually start the path at the site root, using the opening slash `/`
-# if not specified, inferred from `media_folder:`
-public_folder: "/images"
-
-# media_library:  # optional, connect to 3rd-party media gallary
-# site_url:       # optional, provide a URL to your published site
-# display_url:    # optional, include the link in the fixed area at the top of the CMS UI
-# logo_url:       # optional, CMS UI change the logo displayed at the top of the login page
-# locale:         # def=en. Decap CMS also supports `vi`, which is very good for Dad
-# show_preview_links:  # def=true
-# search:         # def=true. Might trigger rate limits, consider disabling it.
+# media_library:                    # connect to 3rd-party media gallary
+site_url: https://iamhung.top       # provide a URL to your published site
+# display_url:                      # include the link in the fixed area at the top of the CMS UI
+                                    # def=site_url's value
+# logo_url:                         # change the logo displayed at the top of the login page
+# locale:                           # def=en, change to "vi". NOTE: Decap CMS also supports "vi"
+# show_preview_links:               # def=true, display URL to preview upcoming change
+# search:                           # def=true. load all collections' entries on remote repositories
+                                    # Might trigger rate limits, best to set to false
 slug:
-  encoding: "ascii" # def="unicode". "ascii" only allows alphanumeric, underscore, hyphen and tilde
-  clean_accents: true # remove diacritics from slug characters before sanitizing
-  #sanitize_replacement: "_"  # def="-". It's used to substiture unsafe characters.
+  encoding: "ascii"             # only allows alphanumeric, underscore, hyphen and tilde
+                                # "unicode" (default), allows non-ASCII to exist in URL.
+  clean_accents: true           # remove diacritics from slug characters before sanitizing
+  #sanitize_replacement: "_"    # def="-". It's used to substiture unsafe characters.
 
-#editor:
-###preview: false # disable the preview pane for ALL collections
+editor:
+  preview: false # disable the preview pane for ALL collections
 
-# NOTE: from now on, each content file (or "Markdown file with frontmatter") is referred to as "entry"
-
-# prettier-ignore
 collections:
+  # Folder Collection Example
+  - name: "blog"            # collection's unique identifier, used in URL routes, 
+                            # e.g. /admin/collections/blog
+    label: "blog"           # displayed in Decap CMS UI
+    folder: "_posts/blog"   # path to the folder where the Entries are stored
+    create: true            # allow users creating new Entry in collection
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"   # filename template
+    # {{slug}} is the URL-safe version of the Entry's `title` field
+    fields:                 # the fields for each Entry, in frontmatter
+      - { label: "Layout", name: "layout", widget: "hidden", default: "blog" }
+      - { label: "Title", name: "title", widget: "string" } # NOTE: slugify target 
+      - { label: "Publish Date", name: "date", widget: "datetime" }
+      - { label: "Featured Image", name: "thumbnail", widget: "image" }
+      - { label: "Rating (scale of 1-5)", name: "rating", widget: "number" }
+      - { label: "Body", name: "body", widget: "markdown" }
+  
+  # Filter example
+  - name: "posts"
+    label: "Posts"
+    folder: "_posts"
+    filter:
+      field: language
+      value: en
+    fields:
+      - { label: "Language", name: "language" }
+
+  # Nested Collections
   - label: "Nested Pages"
     name: "nested"
     label_singular: "Page"
-    folder: "content/pages"
-      # must be Folder collection
+    folder: "content/pages" # NOTE: must be Folder collection
     create: true
     fields:
       - { label: "Title", name: "title", widget: "string" }
       - { label: "Body", name: "body", widget: "markdown" }
     nested:
-      depth: 3 # max depth to show
-      summary: "{{title}}"
-      # show to collection folder structure
+      depth: 3                # max depth to show
+      summary: "{{title}}"    # optional summary for a tree node, defaults to the inferred title field
+    # `meta` obj with `path` property allows editing the path of entries
+    # change `path` property = move an entire sub tree of the entry to the new location
     meta: { path: { widget: string, label: "Path", index_file: "index" } }
-      # add a meta obj with path property allows editing the path of entries
-      # moving an existing entry will move the entire sub tree of the entry to the new location
 
+  # File Collection Example
   - label: "Pages"
     name: "pages"
-    files:
-      # File collection
-      # A list that contains one or more uniquely files
-      
-      # NOTE: there can only be one field among two fields `files:` and `folder:` in one collection
-      # NOTE #2: files listed in a File collection must already exist in the hosted repository and contains valid value (e.g. `.json` file must contain empty object `{}`)
-
+    # NOTE: `files:` and `folder:` are mutual exclusive.
+    # NOTE: unique files inside File collection must be existed already and contains valid value
+    # (e.g. `.json` file must contain empty object `{}`)
+    files:  # A list that contains one or more uniquely files
       - label: "About Page"
         name: "about"
-        file: "site/content/about.yml"
+        file: "src/content/about.yml"
         fields:
           - {label: Title, name: title, widget: string}
           - {label: Intro, name: intro, widget: markdown}
           - label: Team
             name: team
             widget: list
-            #field:
             fields:
               - {label: Name, name: name, widget: string}
               - {label: Position, name: position, widget: string}
@@ -182,106 +268,133 @@ collections:
 
       - label: "Locations Page"
         name: "locations"
-        file: "site/content/locations.yml"
+        file: "src/content/locations.yml"
         fields:
           - {label: Title, name: title, widget: string}
           - {label: Intro, name: intro, widget: markdown}
           - label: Locations
             name: locations
             widget: list
-            #field:
             fields:
               - {label: Name, name: name, widget: string}
               - {label: Address, name: address, widget: string}
 
-  - label: "Blog" 
-      # optional, def=`name:` field's value
-      # what will be displayed in the editor of CMS UI
-    label_singular: "Blog" 
-      # optional, def=`label:` field's value
-      # what will be displayed in the editor of CMS UI
-    name: "blog" 
-      # required
-    identifier_field: "key" 
-      # def="title"
-      # its value, is the name of the field, whose value, will be used as the unique identifier for the entry.
-      # this unique identifier will be used in slug creation.
+  # Complex Folder Collection
+  - name: "blog"
+    label: "Blogs"
+    label_singular: "Blog"      # def=label's value
+    identifier_field: "key"     # def="title"
+                                # "title" value is used as the unique identifier for the entry, entry's title when viewing a list of entries and slug creation
     description: "A list of blog posts"
-    folder: "src/posts"
-      # required
-      # Folder collection - one or more files with the same format, fields, configurations options, best for blog posts, products, ...
-      # NOTE: if this `folder:` field is used, you can't use `files:` field
-    # ======================================================================== #
-    path: "{{year}}/{{slug}}"
-      # optional
-      # by default, CMS stores Folder collection's entry under the `folder:` field, e.g. "src/posts/post-title.md"
-      # however, if you want to create nested folders, like "src/posts/2025/post-title.md", specify `path:` field like above
-      # NOTE: if `path` is specified on a `folder` collection, `media_folder` defaults to ""
-      # NOTE: if so, entry and media must live together
-    media_folder: "{{media_folder}}/work" 
-    public_folder: "{{public_folder}}/work" 
-      # optional
-      # per-collection, override global setting
-      # if empty string => put media in the same directory as the entry, where the media is served as well
-      # template tags supported:
-        # {{dirname}} - the path to the file's parent directory, relative to the collection's `folder` field
-        # {{filename}} 
-        # {{extension}}
-        # {{media_folder}} - the global media_folder
-        # {{public_folder}} - the global public_folder
-    # ======================================================================== #
-    filter: {field: "foo", value: "bar"}
-      # Optional. 
-      # Can only be used if it's Folder collections
-    create: true 
-      # allow users to create new items in the collection
-    publish: false
-      # def=true.
-      # Ignore if `publish_mode: editorial_workflow` not existed. Hide UI publishing controls for a collection,
-    hide: true
-      # def=false.
-      # Hide the collection in CMS UI. Useful when using the relation wedget to hide referenced collections.
-      # to hide fields, use `widget: hidden`
-    delete: false  
-      # def=true
-      # Prevent users from deleting in a collection
-    extension: md 
-      # Optional.
-      # Determine how collection files are parsed and saved. 
-      # NOTE: IMO, "Markdown file with YAML-formatted frontmatter" offer the best balance of readability, flexibility, compatibility.
-    format: "frontmatter"
-      # Optional.
-      # Determine how collection files are parsed and saved. This field is inferred based on `extension` field.
-      # NOTE: `extension: md` so `format:` will take `frontmatter` value.
+    folder: "src/posts"         # create entry src/posts/slug-field-value.md
+    path: "{{year}}/{{slug}}"   # create entry src/posts/2025/slug-field-value.md
+                                # if `path:` specified, media_folder set to "", entry and media lives together
+    media_folder: "{{media_folder}}/work"     # per-collection uploaded media save location
+    public_folder: "{{public_folder}}/work"   # per-collection uploaded media referenced on published site
+    # template tags supported:
+    # - {{dirname}} - the path to the file's parent directory, relative to the collection's `folder` field
+    # - {{filename}} 
+    # - {{extension}}
+    # - {{media_folder}} - the global media_folder
+    # - {{public_folder}} - the global public_folder
+
+    filter:                   # Per-collection filter, different from Relation widget filter
+      field: "foo"
+      value: "bar"
+    create: true              # NOTE: Folder Collection only
+    publish: false            # hide the UI for publishing
+    hide: true                # hide the collection in CMS UI
+    delete: false             # def=true, allow users from deleting in a collection
+    extension: md             # Determine how collection files are parsed and saved. 
+                              # NOTE: "Markdown file with YAML-formatted frontmatter" offer
+                              # the best balance of readability, flexibility, compatibility.
+    format: "frontmatter"     # Determine how collection files are parsed and saved. 
+                              # This field is inferred based on `extension` field.
+                              # e.g. `extension: md` so `format:` will take `frontmatter` value, which is only processed the data formatter and leave the body.
+    # change the frontmatter delimiter
+      # optional, def="---"
     frontmatter_delimiter: "~~~"
-      # Optional. 
-      # NOTE: IMO, triple hyphens is good enough.
+
+    # template for entry's filename
+    # def="{{slug}}"
+    # supported template tags:
+      # {{title}}, {{foo}}, etc. - entry's fields
+      # {{slug}} - url-safe version of the value of entry's `title:` (or `identified_field:` ) field
+      # {{fields.slug}} - entry's `slug:` field.
+      # {{year}}, {{month}}, {{day}}, {{hour}}, {{minute}}, {{second}} - extracted from entry's `date` field, or entry's creation date on OS filesystem metadata.
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
-      # template for filename for the entry
-      # template tags supported:
-        # {{title}}, {{foo}}, ...: any field that's existed inside the content file
-        # {{slug}}: a url-safe version of the `title` field (or `identified_field`'s value)
-        # {{fields.slug}}: if your content file happens to contain a slug field.
-        # {{year}}, {{month}}, {{day}}, {{hour}}, {{minute}}, {{second}}: extracted from `date` field, or file's creation date on OS.
-    preview_path: "people/{{slug}}" # test
-    #preview_path: "blog/{{year}}/{{month}}/{{slug}}"
+
+    # preview the rendered version of the entry on live site
+      # optional. def="/" (site root)
+      # supported template tags:
+        # {{slug}} - same as above
+        # {{year}}, {{month}}, {{day}} - same as above
+        # {{dirname}} - path to entry's parent directory
+        # {{filename}} - extension-less filename
+        # {{extension}} - file extension only
+    preview_path: "people/{{slug}}" 
+    # preview_path: "blog/{{year}}/{{month}}/{{slug}}"
+
+    # sometimes, you don't want to use entry's `date:` field or entry's OS filesystem metadata for date-based template tags extraction.
       # optional
-      # a string representing the path where content in this collection can be found on the live site. If not specified, it will lead to the site root.
-      # template tags supported:
-        # {{slug}} - the value from above `slug`, not just the url-safe identifier
-        # {{year}}, {{month}}, {{day}} - date-based template tags. If preview_path_date_field not specified, they're pulled from `date` field.
-        # {{dirname}} - the path to the file's parent directory
-        # {{filename}} - the filename without extension part
-        # {{extension}} - the file extension
-    preview_path_date_field: "updated_on"
+    preview_path_date_field: "updated_on" 
+                                                       
+    # customize the collection's list view
+    # docs: https://decapcms.org/docs/summary-strings/
       # optional
-      # if not provided, `preview_path` will check for `date` field.
-      # specified if you want another field ( to be used
+      # supported template tags:
+        # {{foo}}, {{bar}}, {{baz}}, etc. any fields that `slug:` can access
+        # {{dirname}}
+        # {{filename}}
+        # {{extension}}
+        # {{commit_date}}
+        # {{commit_author}}
+      # transformation, using Nunjucks' filter syntax:
+        # upper
+        # lower
+        # date("INSERT_FORMAT_STRING")
+        # default("INSERT_DEFAULT_STRING")
+        # ternary("INSERT_STRING_FOR_TRUE", "INSERT_STRING_FOR_FALSE")
+          # TODO: Find out the behavior for non-boolean field? What is the implicit type coercion behavior?
+        # truncate(INSERT_NUMBER) or truncate(INSERT_NUMBER, "INSERT_STRING")
+          # docs: https://mozilla.github.io/nunjucks/templating.html#truncate
+    summary: "{{title | upper}} - {{date | date('YYYY-MM-DD')}} – {{body | truncate(20, '...')}}"        
+
+    # list of sort fields to show in the CMS UI
+      # optional
+    sortable_fields: ['commit_date', 'title', 'commit_author', 'language.en'] 
+
+    # a list of predefined view filters to show in the Decap CMS UI
+      # optional, def=empty list
+    view_filters:
+      - label: "Alice's and Bob's Posts"
+        field: author
+        pattern: 'Alice|Bob'
+      - label: 'Posts published in 2020'
+        field: date
+        pattern: '2020'
+      - label: Drafts
+        field: draft
+        pattern: true
+
+    view_groups:
+      - label: Year
+        field: date
+        pattern: \d{4}
+      - label: Drafts
+        field: draft
+      # optional, def=empty list
+      # a list of predefined view groups to show in the Decap CMS UI
+
+    editor:
+      preview: false
+      # optional, def=true
+      # disable the preview pane for the collection or file
+
     fields:
-      # required
-      # maps editor UI widgets to field-value pairs in the saved file
-      - name: "blog"
-          # required, field name in the entry's front matter.
+      # String widget
+      # Multi-line syntax
+      - name: "blog"  # maps editor UI widgets to field-value pairs in the saved file
         label: "Blog"
           # required, field label in the editor UI.
         widget: "string"
@@ -302,104 +415,95 @@ collections:
         comment: "This is a multiline\ncomment"  
           # optional
           # only supported in `extension: yaml`
+
+      # Recommended: One-liner syntax is much cleaner
+      # However, it's not recommended for field whose widget contains nested structure (e.g. "object", "list", "image", ...)
       - { label: "Layout", name: "layout", widget: "hidden", default: "blog" }
         # Q: What about the "layout" field? That's not supposed to be supplied by non-tech user
         # A: Hide it, and give it a default value. 
-        # CAUTION: You don't have to write EVERY FIELDS inside `config.yml`. Sometimes, it's better to NOT include developer-responsible fields then using "widget: hidden" to hide them from non-tech workers.
+        # CAUTION: Some fields are best to be handled by the front-end framework.
 
-        # NOTE: It's recommended to use one-liner syntax, much more clean
-        # NOTE: Not recommende for field whose widget contains nested structure (e.g. "object", "list", "image", ...)
+      # Relation widget
       - label: "Team"
         name: "team"
         widget: "relation"
-        collection: "people"
-          # name of the referenced collection
-        value_field: "key"
-          # name of the field from the referenced collection, whose value will be stored inside the referencing collection for the relation
-        search_fields: ["name"]
-          # list of 1 or more names of fields in the referenced collection to search for.
-          # e.g. the generated UI input will search the "people" collection by "name" field
-          # if value_field is some key of nanoid key, we wouldn't want to search for nanoid right?
-        display_fields: ["name"]
-          # List of 1 or more names of fields in the referenced collection that will render in the autocomplete menu of the control.
-          # After searching, the generated UI input display each person's name (of course you can display more fields serve as criteria for your choosing decision)
-          # On selection, the author's name is saved for the field "team"
-        #default: "foo bar"
+        collection: "people"      # Name of the "referenced" collection
+        value_field: "key"        # Name of the field from the "referenced" collection's entry, whose value
+                                  # will be stored inside the "referencing" collection's entry (i.e. "Team")
+                                  # e.g. a foreign key inside a table which is the id column of another table
+
+        search_fields: ["name"]   # List of the "referenced" collection's entry's fields 
+                                  # that will be used as search criteria
+                                  # NOTE: avoid set value_field to nanoid key
+                                  # e.g. the UI will search the "people" collection's entry by "name" field.
+
+        display_fields: ["name"]  # List of the "referenced" collection's entry's fields
+                                  # that will be rendered in the autocomplete menu of the control.
+                                  # After searching, the generated UI input display each person's name
+                                  # Of course, beside name, you can display other fields that might serve as criteria choosing decision)
+        default: "foo bar"
         multiple: true
-        #min: 1
-          # minimum number of items
-        #max: 50
-          # maximum number of items
-        #options_length: 30
-          # def=20
-          # limit the number of options presented to user
-          # it should be less than `max: `
-        #filters: 
-          # - field: draft
-          #   values: [false]
-          # - field: title
-          #   values: ['post about cats', 'post about dogs']
-          
-          # a list of pairs of `field` and `values`, which are the name of field and a list of 1 or more allowed values
+        min: 1
+        max: 50
+        options_length: 30        # def=20, limit the number of options presented to user
+                                  # it should be less than `max: `
+        filters:                  
+          # a list of pairs of `field` and `values`, 
+          # which are the name of field and a list of 1 or more allowed values
           # a collection item satisfies a filter if the value of `field` is one of the values in `values`
+          - field: draft
+            values: [false]
+          - field: title
+            values: ['post about cats', 'post about dogs']
 
       - label: "Puppy Count"
         name: "puppies"
         widget: "number"
         default: 2
-        value_type: "int"
-          # optional, but if isn't specified, the value is stored as string
+        value_type: "int" # a list of pairs of `field` and `values`, 
         min: 1
         max: 101
         step: 2
 
+      # Object widget
       - label: "Featured Work"
         name: "featuredWork"
         widget: "object"
-        summary: "{{title}}: {{summary | truncate(20, '...')}}"
-          # displayed when the obj is collapsed
-        collapsed: false
-          # optional, def=true
-          # prevent collapsing the widget inside `fields:` right after UI loading (not the parent widget)
+        summary: "{{title}}: {{ summary | truncate(20, '...')}}" # display when the obj is collapsed
+        collapsed: true   # def=false. By default, disable collapsing the widget
         fields:
           - { label: "Title", name: "title", widget: "string" }
           - { label: "Summary", name: "summary", widget: "string" }
       
+      # Datetime widget
       - label: "Publish Date"
         name: "date"
         widget: "datetime"
         default: "{{now}}"
         format: "YYYY-MM-DD"
         time_format: false
-          # NOTE: extremly buggy and not reliable. But mmong the Git-based, open-source CMS, Decap CMS is the best :v
-          # Can't change date picker UI from inside Decap CMS
-          # Mix and match ISO format date with custom format date will render the sorting behavior wrong.
+        # CAUTION: extremly buggy and not reliable.
+        # CAUTION: Can't change date picker UI from inside Decap CMS
+        # CAUTION: Mix and match ISO format date with custom format date make sorting behavior wrong.
       
+      # List widget
       - label: "Tags"
         name: "tags"
         widget: "list"
-        fields:
+        #field: { label: "Value", name: "value", widget: "string" }
+        fields: # optional
           - { label: "Source", name: "src", widget: "string" }
           - { label: "Alt Text", name: "alt", widget: "string" }
-          # without this `fields:`, the list widget defaults to a text input for entering "comma-separated values"
+          # without `fields:`, the list widget defaults to a text input for entering comma-separated values
           # with `fields:`, the list widget contains a repeatable child widget, with controls for adding, deleting, and re-ordering the repeated widgets.
         default:
           - { src: "/img/tennis.jpg", alt: "Tennis" }
           - { src: "/img/footbar.jpg", alt: "Football" }
-          # without `fields`, it can be a list of strings (e.g. ["foo", "bar"])
-          # with `fields`, it can be an array of list items (e.g above)
-        allow_add: false
-          # optional, def=true
-          # hide the button to add additional items, or prevent addition
-          # NOTE: meaningless if you're not using `fields` to tweak its UI
-        collapsed: false
-          # optional, def=true
-          # prevent collapsing the widget inside `fields:` right after UI loading (not the parent widget)
-          # NOTE: meaningless if you're not using `fields` to tweak its UI
-        minimize_collapsed: true
-          # optional, def=false
-          # hide all of its entries, instead of showing summaries
-          # NOTE: meaningless if you're not using `fields` to tweak its UI
+          # without `fields`, it's a list of strings (e.g. ["foo", "bar"])
+          # with `fields`, it's an array of list items
+        allow_add: false # by def=true, don't hide the button to add additional items
+        collapsed: false # by def=true, collapse the widget
+        minimize_collapsed: true  # by def=false, prevent hiding all of its entries and show summaries
         label_singular: "Tag"
           # optional
           # override the text showing on the add button
@@ -410,57 +514,6 @@ collections:
           # optional, def=false
           # new entries will be added to the top of the list
           # NOTE: meaningless if you're not using `fields` to tweak its UI
-
-    summary: "{{title | upper}} - {{date | date('YYYY-MM-DD')}} – {{body | truncate(20, '...')}}"
-      # optional
-      # allow the customization of the collection list view
-      # supported any field that `slug:` field can access: 
-        # {{foo}}, {{bar}}, {{baz}}, ... 
-        # {{dirname}}
-        # {{filename}}
-        # {{extension}}
-        # {{commit_date}}
-        # {{commit_author}}.
-      # can be applied transformation, using filter notation syntax
-        # upper
-        # lower
-        # date("INSERT_FORMAT_STRING")
-        # default("INSERT_DEFAULT_STRING")
-        # ternary("INSERT_STRING_FOR_TRUE", "INSERT_STRING_FOR_FALSE")
-          # TODO: What is the behavior for non-boolean field? What is the implicit type coercion behavior?
-        # truncate(INSERT_NUMBER) or truncate(INSERT_NUMBER, "INSERT_STRING")
-          # read more: https://mozilla.github.io/nunjucks/templating.html#truncate
-
-    sortable_fields: ['commit_date', 'title', 'commit_author', 'language.en']
-      # optional
-      # list of sort fields to show in the CMS UI
-
-    view_filters:
-      - label: "Alice's and Bob's Posts"
-        field: author
-        pattern: 'Alice|Bob'
-      - label: 'Posts published in 2020'
-        field: date
-        pattern: '2020'
-      - label: Drafts
-        field: draft
-        pattern: true
-      # optional, def=empty list
-      # a list of predefined view filters to show in the Decap CMS UI
-
-    view_groups:
-      - label: Year
-        field: date
-        pattern: \d{4}
-      - label: Drafts
-        field: draft
-      # optional, def=empty list
-      # a list of predefined view groups to show in the Decap CMS UI
-
-    editor:
-      preview: false
-      # optional, def=true
-      # disable the preview pane for the collection or file
 ```
 
 ### 4. Access your content
@@ -473,9 +526,13 @@ Content saved using UI saves directly to the hosted repository, even if you're r
 
 ### Manual Initialization
 
-Official documentation shows that you can create custom widgets, set up dynamic default values and replace `config.yml` - the SSOT - with JavaScript file with Manual Initialization for better scalability and maintainability, [as recommended by Mr. Kaluzny](https://mrkaluzny.com/blog/dry-decap-cms-config-with-manual-initialization). Manual Initialization can be done via two methods: `import` from `npm` package or `<script>` tag. It doesn't limit to developers that installed via `npm` (my grave mistake back then).
+For projects with bigger scope, you can create custom widgets and set up dynamic default values and replace SSOT `config.yml` with a JS file for better scalability and maintainability, [as recommended by Mr. Kaluzny](https://mrkaluzny.com/blog/dry-decap-cms-config-with-manual-initialization).
 
-For simple use cases + zero dependencies, I suggest you stay with `config.yml`.
+Custom widgets can be created, set up dynamic default values and replace `config.yml` - the SSOT - with JavaScript file with Manual Initialization for better scalability and maintainability, 
+
+Manual Initialization can be done via two methods: 
+- `import` from `npm` package
+- `<script>` tag inside `admin/index.html`
 
 ### Custom widget
 
@@ -489,6 +546,9 @@ I personally prefer zero dependencies for my data sources to maximize security. 
 <script>
   // CMS.registerWidget(name, control, [preview], [schema]);
   CMS.registerWidget(
+    // two benefits of using nanoid
+    // one, Decap CMS doesn't support auto increment
+    // two, non-tech user doesn't need to remember the last ID
     "nanoid", // string, accessed via `widget:` field in `config.yml`
     createClass({
       getDefaultProps: function () {

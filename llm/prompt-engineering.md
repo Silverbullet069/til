@@ -349,7 +349,9 @@ Writing a one-liner ambiguous (or "too smart") prompt leaves various spaces for 
   > In output format, specify `import <package_name>` if working with a specific `npm/pip` package, or `SELECT` if writing a SQL statement.
 - Avoid _qualitative_ instructions, write _quantitative_ instructions instead.
 - [Anthropic's Golden Rule of Clear Prompting](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-clear-and-direct): Show your prompts to another person, ideally someone who doesn't know anything about the task at hand and ask them to follow the instructions. If they're confused, LLMs will likely be too.
-- ***
+- Make the LLM ask the human for clarification at the end of the _instructions_: `Remember, you MUST ask if you have any questions or need any clarification.`
+
+**Examples:**
 
 Explain the concept of prompt engineering:
 

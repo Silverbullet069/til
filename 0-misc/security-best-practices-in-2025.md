@@ -6,19 +6,43 @@ After being scared when I installed an NPM package directly from a GitHub reposi
 
 <!-- tl;dr ends -->
 
-## Thread models
+## The current conditions
 
-- One popular NPM package can contain hundreds of direct dependencies and thousands of transitive dependencies. One direct/transitive dependency get f\*\*ked and we're all f\*\*ked.
+Let's dive in the THREE categories of programs: Runtime, Package Manager and Runtime Version Manager
 
-- `npm` hooks `pre-install` and `post-install` have full machine access and run silently. So does `pip` calling setuptools's post-install hook, `brew`, `yum`, ... Git hooks don't come with repo when you clone it, but that doesn't save you when you run any command, file or import from a git repo.
+### Runtime (Node, Deno, Bun, Python, Ruby, ...)
 
-- Dependency auto updater is set up at most popular packages. NPM has no reidentification step for publishing package updating after the initial authentication via `npm login` or via an NPM configuration token stored in `~/.npmrc`. If a maintainer's machine is compromised, is hijacked or the maintainer himself goes rogue, they can push malicious updates to packages that millions of projects depend on, and those updates will be automatically distributed through the dependency chain.
+Node, Python, etc. have no sandbox model.
 
-- Disabling `pre-install`, `post-install` hooks can save you from being conpromised after installing it, but it won't save you after running it.
+Deno, Dart requires users to list both direct dependencies and transitive dependencies, which is a good auditing practice.
 
-- Watching outbound network traffic and allow connected to a handful of known hosts is very hard. Your computer connects to thousands of hosts indicating where your HTML/CSS/JS scripts and static asset (images, videos, ...). Those files might not be served from source, they might be cached on various caching points on the vast CDN of many major cloud providers. No matter how restrictive your rules, hackers can bypass it by renaming your SSH upload endpoint to `imghostrr.com/puppy.png`
+Deno's runtime, `wasmtime` - runtime for WebAssembly has a sandbox: it's designed with blacklist by default and whitelist by manual.
 
-## What damaged can be done by a post-install script?
+### Package Manager (or Build System) (npm/pnpm/yarn/...)
+
+`git:`
+
+- Git hooks by default don't get pushed into remote repository, but a malicious actor can set the `core.hookspath` setting's value to a directory that can be pushed and write the setting into a local Git config file so it can be automatically applied when users cloned the repo.
+- In general, run any `git ...` command inside a repo can trigger anything.
+
+`npm:`
+
+- `npm install` executes the `pre-install` and `post-install` hooks from **hundreds** of direct dependencies and **thousands** of transitive dependencies. It takes only **ONE** dependency to f\*\*ked up our system.
+- `npm install` has **full** system access yet ran silently.
+- `npm` has dependency auto updater feature. It's not a good practice to turn this on, every dependencies should be manually audited.
+- `npm` has no re-identification process for publishing package updates after initial auth via `npm login`, or via config token stored inside `~/.npmrc`. A maintainer's compromised machine can push malicious updates easily
+- Disabling `pre-install` and `post-install` hooks can save you when running `npm install` but can't save you when you're actually running it. Not to mention it could lead to breakage of the "good" hooks.
+
+`pip:`
+
+- `setuptools` has a `post-install` hook.
+- `pip` also have full system access.
+
+### Runtime Version Manager (nvm, pyenv, rvm, ...)
+
+None of them have sandbox.
+
+## What damaged can be done ?
 
 - Collect system information, your `.ssh`, `.gpg`, crypto wallet keys on a hacker's server. Control your machines, GitHub Repository, take your money, ...
 - Download additional payloads.
@@ -36,7 +60,7 @@ After being scared when I installed an NPM package directly from a GitHub reposi
 
 1. **ua-parser-js (2021)**: Popular browser detection library was hijacked and versions 0.7.29, 0.8.0, and 1.0.0 contained cryptocurrency miners and password stealers affecting millions of downloads.
 
-1. **node-ipc (2022)**: Maintainer intentionally added destructive code that deleted files on Russian and Belarusian users' machines as a protest against the war in Ukraine, affecting dependent packages like Vue CLI.
+1. **node-ipc (2022)**: Maintainer intentionally added destructive code that deleted files on Russian and Belarusian users' machines as a protest against the war in Ukraine, affecting dependent packages like Vue CLI. **This is one of the reason shows that you can't even trust the package maintainers.**
 
 1. **colors.js and faker.js (2022)**: Maintainer sabotaged their own widely-used packages by introducing infinite loops, breaking thousands of applications that depended on them.
 
@@ -50,31 +74,84 @@ After being scared when I installed an NPM package directly from a GitHub reposi
 
 [^9]: https://cycode.com/blog/malicious-code-hidden-in-npm-packages/
 
-## Proposed practices
 
-- Prevent `npm install/update` from installing packages with reported malware (likewise for `pip`, `brew`, `apt`, `yum`, ...)
-- Always require re-authentication for package updates. It can be better if GitHub could do this.
-- Have `npm` and `pypi` registry build the binaries and minified code themselves, instead of having users build the package and upload them.
+## Mitigation strategy
 
-## Mitigation (not elimination) practices
+I will list the number of strategies from the easiest, fastest, restrictive-enough to the hardest, slowest and most restrictive:
 
-- Learn about [reproducible builds](https://reproducible-builds.org/).
-- Secure development environment with [GitHub Codespaces](https://code.visualstudio.com/docs/remote/codespaces) and/or [Microsoft Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers).
-- Secure deployment with containerized applications.
-- Report the malware as quickly as possible on `npm`, `pip`, `brew`, ...
-- Manual audit popular packages regularly and have a separte registry with only known, trusted software. This is the most secure but also the hardest practice since reading line-by-line takes a lot of time and effort.
-- Setup security tools to automate auditing (some might slip past the detection algorithm, again, only a full transparent package + a team audit every single line of code can ensure maximum security).
-- Stop distributing minified on build, only distribute source code, let the users build their own packages and let `gzip` compress the source files.
-- Put passphrases on all your private keys.
-- If you're package maintainer, stay logged out of your accounts on `npm`, `github`, ... at least in the CLI.
-- Disable `npm` hooks `pre-install` and `post-install`.
-- Use `deno` with hardened permissions instead of `node`.
-- Use `firejail` to run `python` code. It's not too trouble, and it eases your overthinking mind.
-- Use Rootless Docker, run as user, prevent privilege escalation with `--security-opt=no-new-privileges:true`.
-- Do your work inside a GitHub Codespace, inside a VM, SSH to a single-use remote machine.
 - `pip` and `npm` is more prone to attack than `apt` and `brew`. For `yum` I tried not to think about it (I'm a Fedora user).
 
+- Use `firejail node|yarn|python|... ` to wrap the Runtime and Package Managers. There might be times when you forget to prefix `firejail ...` so it's best to create symlinks:
+
+```bash
+# Define an array of executables to sandbox
+# NOTE: update this array
+executables=(node npx npm)
+
+for exe in "${executables[@]}"; do
+  # Create symlinks for each executable
+  sudo ln -s /usr/bin/firejail "/usr/local/bin/${exe}"
+
+  # Append each {exe}cutable to firejail's firecfg.config
+  echo "$exe" | sudo tee -a /etc/firejail/firecfg.config
+done
+```
+
+- Use Rootless Docker, run as user, disable network, enable read-only filesystem (or read-only mounted volumes) and prevent privilege escalation.
+
+```bash
+docker run \
+  --name="image_name" \
+  --init \
+  --rm \
+  --user="$(id -u):$(id -g)" \
+  --read-only  \
+  --network="none" \
+  --security-opt="no-new-privileges:true" \
+  --volume="${PWD}:/app:ro" \
+  --workdir="/app" \
+  # an alpine-based iamge
+  silverbullet069/image_name:latest \
+  "$@"
+```
+
+- Put passphrases on all your private keys.
+
+- For JavaScript backend developers: disable `npm` hooks `pre-install` and `post-install`, use `deno` with hardened permissions .
+
+- Set up package monitoring tools like Socket, Snyk, etc. to prevent allowing package managers from installing packages with reported malware.
+
+- Develop your applications while following [reproducible builds](https://reproducible-builds.org/) practices.
+
+- Secure your development environment using containerization: [GitHub Codespaces](https://code.visualstudio.com/docs/remote/codespaces) and [Microsoft Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers) or a VM.
+
+- Secure the deployment environment using containerization in your CI/CD pipeline.
+
+- If you're a package maintainer, create a re-auth process for yourself. Don't wait for the package manager to do it for you. Also stay logged out of your accounts on `npm`, `github`, etc. If you can't, at least in the CLI.
+
+- If you're skillful enough to identify an undisclosed malware, report it as quickly as possible.
+
+- Manual audit popular packages regularly and have a separate registry with only known, trusted software.
+  > The most secure practice, but also the hardest. Only Google has reported to adhere this practice by auditing line-by-line of every tech stack it uses.
+
+- Setup security tools to automate auditing using both:
+  - Static analysis tool (some might slip past the detection algorithm, again, only a full transparent package + a team audit every single line of code can ensure maximum security).
+  - Dynamic analysis tool (using LLM, more reliable but slow and expensive). **NOTE: yet, nobody has ever done it?**
+
+- Watching outbound network traffic and allow connected to a handful of known hosts.
+  > Very hard. Your computer connects to thousands of hosts indicating where your HTML/CSS/JS scripts and static asset (images, videos, ...). Those files might not be served from source, they might be cached on various caching points on the vast CDN of many major cloud providers. No matter how restrictive your rules, hackers can bypass it by renaming your SSH upload endpoint.
+
+## Proposed practices
+
+- Have `npm` and `pypi` registry build the binaries and minified code themselves, instead of having users build the package and upload them.
+- Stop distributing minified on build, only distribute source code, let the users build their own packages and let `gzip` compress the source files.
+
+<!-- TODO: finish learning the following -->
 Package lock files (package-lock.json)
 Exact versions instead of ranges
 npm audit regularly
 Dependency scanning tools
+
+## References
+
+- [Comparing Sandbox Tools](https://hkubota.wordpress.com/2020/12/31/comparing-sandboxing-tools/)

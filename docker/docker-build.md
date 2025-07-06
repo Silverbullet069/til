@@ -306,6 +306,31 @@ CMD ["./main"]
 ### Docker CLI
 
 ```sh
+# Create a NodeJS Sandbox environment
+if docker ps -a --format '{{.Names}}' | grep -q '^decap-cms-dev$'; then
+  docker exec -it decap-cms-dev /bin/bash
+  return 0
+fi
+
+# hit Ctrl+Z to stop the process inside container
+# DO NOT HIT CTRL+C 3 times!
+docker run \
+  --name="decap-cms-dev" \
+  --rm \
+  -it \
+  --init \
+  --security-opt=no-new-privileges:true \
+  --dns="127.0.0.1" \
+  -p="8080:8080" \
+  -v="${PWD}:/app" \
+  -w="/app" \
+  -m="3000m" \
+  --cpus=3 \
+  -e NODE_OPTIONS="--max-old-space-size=3000" \
+  node:lts-bookworm /bin/bash
+```
+
+```sh
 # Create a simple sandbox
 # --user: if you're running Rootless Docker, the host ownership is very different
 docker run \
@@ -314,8 +339,8 @@ docker run \
   --rm \
   --user="$(id -u):$(id -g)" \
   --read-only  \
-  --network none \
-  --security-opt=no-new-privileges:true \
+  --network="none" \
+  --security-opt="no-new-privileges:true" \
   --volume="${PWD}:/app" \
   --workdir="/app" \
   # an alpine-based iamge
