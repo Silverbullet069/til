@@ -1,87 +1,30 @@
 # Prompt Engineering
 
-<!-- tl;dr starts -->
+Humanity has invented a powerful yet non-deterministic tool: Language Model (LM). Whoever can "tame", or steer its output to achieve the best results and quality will be able to extract the most value out of it. In order to steer its results, aside from receiving update from leading LLM vendor, tech workers must be able to craft text prompt for LM.
 
-Humanity has invented a powerful yet formless tool: LLM. To "tame" the LLMs, tech workers although they don't have to immerse themselves in the extensive mathematical aspects that form the core foundation of Machine Learning, Deep Learning and LLMs specifically (as AI scientists/AI engineers do), will at least need to proficient in using AI. Developers, like me, learn prompt engineering to create robust and effective prompts to receive the best results.
-
-<!-- tl;dr ends -->
-
-## Table of Contents
-
-- [Cheatsheet](#cheatsheet)
-- [The Three Commandments](#the-three-commandments)
-- [The Four Prompt Elements](#the-four-prompt-elements)
-- [General practices](#general-practices)
-- [One-size-fit-all practices](#one-size-fit-all-practices)
-  - [Use English](#use-english)
-  - [Correct grammar](#correct-grammar)
-  - [Use strong modal verb `MUST`](#use-strong-modal-verb-must)
-  - [Use imperative mood](#use-imperative-mood)
-  - [Arrange the position of prompt elements](#arrange-the-position-of-prompt-elements)
-  - [Avoid negation](#avoid-negation)
-  - [Avoid ambiguity](#avoid-ambiguity)
-  - [Add separator](#add-separator)
-  - [Keep your codebase following best practices](#keep-your-codebase-following-best-practices)
-  - [Test and iterate](#test-and-iterate)
-- [Prompt Engineering Techniques](#prompt-engineering-techniques)
-  - [1. Zero-shot Prompting](#1-zero-shot-prompting)
-  - [2. Few-shot Prompting](#2-few-shot-prompting)
-  - [Zero-shot Prompting versus Few-shot Prompting](#zero-shot-prompting-versus-few-shot-prompting)
-  - [3. Chain-of-Thought Prompting](#3-chain-of-thought-prompting)
-    - [3a. Zero-shot CoT Hybrid Prompting](#3a-zero-shot-cot-hybrid-prompting)
-    - [3b: Few-shot CoT Hybrid Prompting](#3b-few-shot-cot-hybrid-prompting)
-    - [3c: Automatic CoT Prompting](#3c-automatic-cot-prompting)
-  - [4. Meta Prompting](#4-meta-prompting)
-  - [5. Self-Consistency](#5-self-consistency)
-  - [6. Generate Knowledge Prompting](#6-generate-knowledge-prompting)
-  - [7. Prompt Chaining](#7-prompt-chaining)
-  - [8. Tree of Thoughts](#8-tree-of-thoughts)
-  - [9. Retrieval Augmented Generation](#9-retrieval-augmented-generation)
-  - [10. Automatic Reasoning and Tool-use](#10-automatic-reasoning-and-tool-use)
-  - [11. Automatic Prompt Engineer](#11-automatic-prompt-engineer)
-  - [12. Active-Prompt](#12-active-prompt)
-  - [13. Directional Stimulus Prompting](#13-directional-stimulus-prompting)
-  - [14. Program-Aided Language Models](#14-program-aided-language-models)
-  - [15. ReAct](#15-react)
-  - [16. Reflexion](#16-reflexion)
-  - [17. Multimodel CoT](#17-multimodel-cot)
-  - [18. Graph Prompting](#18-graph-prompting)
-- [Vendor-specific Prompting Techniques](#vendor-specific-prompting-techniques)
-  - [1. Prompt Generator](#1-prompt-generator)
-  - [2. Role Prompting](#2-role-prompting)
-  - [3. Prefilling Responses](#3-prefilling-responses)
-- [Reasoning Model Prompting Techniques](#reasoning-model-prompting-techniques)
-  - [0. General techniques](#0-general-techniques)
-  - [1. Avoid Chain-of-Thought (CoT)](#1-avoid-chain-of-thought-cot)
-  - [2. Avoid Prompt Chaining and Prefilling Responses](#2-avoid-prompt-chaining-and-prefilling-responses)
-  - [3. Few-shot CoT Prompting](#3-few-shot-cot-prompting)
-  - [4. Make the best of long outputs and longform thinking](#4-make-the-best-of-long-outputs-and-longform-thinking)
-  - [5. Reflect on its work](#5-reflect-on-its-work)
-- [Prompt Framework](#prompt-framework)
-  - [Structural Documentation System](#structural-documentation-system)
-  - [kleosr/Cursorkleosr](#kleosrcursorkleosr)
-  - [RIPER-5 (Research, Innovate, Plan, Execute, Review)](#riper-5-research-innovate-plan-execute-review)
-    - [Overview](#overview)
-    - [START Phase](#start-phase)
-    - [RIPER-5 Workflow](#riper-5-workflow)
-- [References](#references)
+Future tech workers who can't understand the mathematical concepts behind LM like AI scientists/AI engineers do, must master every aspects of prompt engineering to survive the work force compatition.
 
 ## Cheatsheet
 
 System prompt:
 
 ```
-You're a {{ROLE}} specializing in {{}} for {{COMPANY}}.
+# Identity
+
+You're a {{ROLE}} specializing in {{PROFICIENCY}}...
 ```
 
-User prompt:
+User prompt, a hybrid of Markdown and XML:
 
 ```txt
+## Goals
+...
+
 Your task is to ...
 
 Analyze/Classify/Compare/Extract/Highlight/Note/Include/List/Order/Replace ... with .../Summarize/Translate/Transform ... into ... /Write/...
 
-Instructions:
+## Instructions/Requirements:
 1.
 2.
 ...
@@ -122,8 +65,9 @@ Structure:
 </documents>
 
 <instructions>
-  <instruction></instruction>
-  <instruction></instruction>
+  <instruction step="1"></instruction>
+  <instruction step="2"></instruction>
+  ...
 </instructions>
 
 <context>
@@ -158,482 +102,27 @@ We’re a multinational enterprise considering this agreement for our core data 
 - **Two.** Thou shall finalize the work using thy brain.
 - **Three.** Thy prompts shall take "partial" responsibility for the well-being of LLMs' output.
 
-## The Four Prompt Elements
+## The FIVE Prompt Elements
 
-Terminologies overlapped in various prompt engineering documents, guides, blogs, books, videos, ... Inspired by [Prompt Engineering Guide's "Elements of a Prompt"](https://www.promptingguide.ai/introduction/elements) definitions, I deviate a little change:
+Terminologies overlapped in various prompt engineering documents, guides, blogs, books, videos, ...
 
-- **Input data/Input text**: the text documents, coding scripts, etc. that serves as context for _instructions_.
-- **Instructions**: a specific task or a number of tasks that the model needs to perform. These tasks embedded **rules** - a list of requirements that can steer the model to better responses: role-playing, problem statement, rtistic style, tone for a target audience, etc.
-- **Examples**: real or synthetic desired outputs that serve as references for _output format_.
-- **Output format**: the structure of the response (e.g., JSON, numbered list, bullet points, etc.). However, many leading AI vendors now offer structured output as a separate feature rather than embedding it within prompts.
+Inspired by [Prompt Engineering Guide's "Elements of a Prompt"](https://www.promptingguide.ai/introduction/elements) and [OpenAI's "Message formatting with Markdown and XML"](https://platform.openai.com/docs/guides/text?api-mode=responses&prompt-example=prompt#message-formatting-with-markdown-and-xml) definitions, this is my definition of the structure of a prompt:
 
-Other might categorized into **TWO** prompt elements: _instructions_ and _input data_. That is also fine, my way of separation is a bit more fine-grained.
+- **Identity:** describe the assistant role, communication style and the high-level goals/problem statement of the problem.
+- **Instructions:** specifying a list of _tasks_ that you want the model to perform. The tasks must also conform to a set of _rules_, or a list of requirements that can steer the model to better responses. The rules answer 2 basic questions: _What should the model do?_ and _What should the model NEVER do?_
+- **Output format/output indicator**: The structure of your desired output. (E.g. JSON, numbered list, bullet points, etc.)
+- **Examples**: realistic or synthetic input/output pairs. **It's the most effective element to enforce output format.**
+- **Context/Input Data:**: everything that the Language Model might need to generate the response. (E.g. focused, targeted public data via Context7 MCP, private/proprietary data outside of its training data, PDF documents, screenshot images, etc.)
 
-Simple prompt can be a one-liner that embedded all four elements. Complex prompt can span across multiple paragraphs with clear boundaries. All four elements are optional.
+Simple prompt can be a one-liner that embedded all elements. Complex prompt can span across multiple paragraphs with clear boundaries. Each element is optional.
 
-## General practices
+## SIX Prompt Engineering Techniques
 
-- Don't start writing your prompts/instructions/chat modes... from scratch, [PatrickJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules/blob/main/rules-new) is a good starting place.
-
-- Avoid writing ONE complex Chat request (even when it's unambiguous since it's time-consuming). Utilize multiple [simple, specific, short](https://www.youtube.com/watch?v=hh1nOX14TyY) one-liner Chat requests.
-
-- Beside general, one-size-fit-all coding guidelines, add separate **rules** for specific tech stack (e.g. frameworks, libraries, programming languages, ...)
-
-- Include the project directory structure as **input data** ([cre](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/))
-
-- Add architectural context as **input data** to every follow-up prompts because the architectural context specified in the first prompt will be forgotten in the long run ([cre](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/))
-
-- Avoid including the whole codebase as **input data**. ([cre](https://www.reddit.com/r/cursor/comments/1kl1wvo/comment/mrzu7ua/))
-
-- Check whether **rules** are honored by role-playing (e.g. make it call you mommy, daddy, etc. or generate a smiling face, a pelican riding a bicycle, etc.) or generate rule summarization at the start of the conversation. ([cre#1](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm55r1b/), [cre#2](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm54hu9/)).
-
-  `Important: you MUST call me (insert name) at the start of every conversation.`
-
-- Specify less **rules** for Gemini 2.5 Pro, add more **rules** to Claude 3.5 non-reasoning model. There have been cases where Gemini performs worse.
-
-- Add simple, vague rules that is deemed to be working:
-
-  ```md
-  <!-- cre: https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mlzw30d/ -->
-
-  Don't be helpful, be better.
-  Write better code.
-
-  <!-- cre: https://www.reddit.com/r/cursor/comments/1ju63ig/the_one_golden_cursor_rule_that_improved/ -->
-  <!-- avoid create fixes on top of prior fixes -->
-
-  Important: try to fix things at the cause, not the symptom.
-  Be very detailed with summarization and do not miss out things that are important.
-  ```
-
-- Threatening is a hit-and-miss, avoid such practice ([cre](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm559oz/)).
-
-- Create **rules** from a template **rule**. ([cre](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/))
-
-- (Cursor only) Replace the deprecated `.cursorrules` file with the more recent `instructions` directory + `.mdc` files.
-
-- Use token counters. The number of tokens created from converting a simple "Hello World" UTF-8 string is varied among the LLMs from different major LLM vendors. 1 Claude-family LLM token ~= 1 GPT-family LLM token ~= 1 Gemini-family LLM token.
-
-- Understand the capacity of the LLMs given by LLM seller. There is a lack of transparency from the LLM-powered coding platforms (GitHub Copilot, Cursor, Windsurf, ...). They didn't show the context window nor the maximum number of input/output tokens.
-
-- Avoid hallucination by providing the up-to-date documentation of all of the dependencies inside your tech stack. You can use [Context7 MCP by Upstash](https://github.com/upstash/context7) for this, but self-maintained docs can be more reliable.
-
-> [!CAUTION]
->
-> Context7 let user upload their own documentation, malicious users can include malicious script inside their docs, results in prompt injection vulnerability. Upstash relies on other users to report the malicious docs similar to `npm/pip`.
-
-- Refrain from adding too much unrelated context. LLM is limited by the context window and maximum input tokens. Not only your precious input tokens are wasted but also the outputs suffer from negative performance impact.
-
-## One-size-fit-all practices
-
-These practices can be applied in nearly **every** use case. I sorted them from the easiest and most effective to the hardest with complex efficiency measurement.
-
-### Use English
-
-English is the most common language in this world. The resources used for training LLMs are written in English.
-
-[Anthropic's Multilingual support](https://docs.anthropic.com/en/docs/build-with-claude/multilingual-support) confirm English has 100% performance.
-
-### Correct grammar
-
-Be mindful about the English grammar, especially XML tags.
-
-### Use strong modal verb `MUST`
-
-Without `MUST`, the rules can be interpreted as optional
-
-```
-You MUST do foo...
-You MUST NOT do bar...
-```
-
-### Use imperative mood
-
-Use simple and concise English verbs for the following use cases:
-
-1. Understanding and Interpretation: e.g. text summarization
-
-   - Summarize
-   - Explain
-   - Describe
-   - Define
-   - Compare
-   <!-- less common -->
-   - Contrast
-   - Show
-   - Translate
-
-1. Analysis and Reasoning: e.g. information analysis, text classification
-
-   - Analyze
-   - Extract
-   - Categorize
-   - Evaluate
-   - Classify
-   - Identify
-   - Parse
-   <!-- less common -->
-   - Highlight/Note
-   - Find
-   - Measure
-   - Retrieve
-
-1. Decision and Judgement:
-
-   - Recommand
-   - Select
-   - Pick
-   - Rank
-   - Predict
-
-1. Creation and Generation: e.g. question answering, conversation, ...
-
-   - Answer
-   - Create
-   - Write/Rewrite
-   - Replace
-   - Generate
-   <!-- less common -->
-   - Draw (image-as-code e.g. MermaidJS, ASCII image, ...)
-   - Provide
-   - Return
-   - Act
-
-1. Organization and Structuring
-
-   - List (common)
-   - Sort
-   - Organize
-
-```
-Goal: Write a function that tells me if a number is prime.
-
-Requirements:
-- The function MUST take a positive integer and return true if the integer is prime.
-- The function MUST return false if the input anything but a positive integer.
-```
-
-### Arrange the position of prompt elements
-
-According to [OpenAI's Best Practice for Prompt Engineering](https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api#h_21d4f4dc3d), prompts should be started with _instructions_.
-
-According to [Anthropic's Essential Tips for long context prompts](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips#essential-tips-for-long-context-prompts), LLMs support over 200K+ context window token should be inputed by a prompt starting with long _input data_ (about ~20K+ tokens), then _instructions_, then _examples_.
-
-> Anthropic stated that the response quality of all models in Claude-family has improved by up to 30% when tested with complex, multi-document inputs.
-
-### Avoid negation
-
-> [!IMPORTANT]
->
-> Might be depreciated since I can't find unexpected behavior when using negation on newer LLMs. There are some cases show that using negation provide better results.
-
-**Examples:**
-
-```txt
-The following is a conversation between an Agent and a Customer.
-DO NOT ASK USERNAME OR PASSWORD. DO NOT REPEAT.
-Customer: I can't log in to my account.
-Agent:
-```
-
-### Avoid ambiguity
-
-> [!IMPORTANT]
->
-> In my opinion, this is the kind of mistakes that most AI users made.
-
-Writing a one-liner ambiguous (or "too smart") prompt leaves various spaces for the LLMs to fill on its own, results in misinterpretation, clarification in-need and undesired outputs.
-
-- Break it down to sequence of _instructions_.
-- Provide _examples_ when specifying _output format_. Use leading words. LLMs are pattern completers. Give it some context and let it finish the rest.
-  > In output format, specify `import <package_name>` if working with a specific `npm/pip` package, or `SELECT` if writing a SQL statement.
-- Avoid _qualitative_ instructions, write _quantitative_ instructions instead.
-- [Anthropic's Golden Rule of Clear Prompting](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-clear-and-direct): Show your prompts to another person, ideally someone who doesn't know anything about the task at hand and ask them to follow the instructions. If they're confused, LLMs will likely be too.
-- Make the LLM ask the human for clarification at the end of the _instructions_: `Remember, you MUST ask if you have any questions or need any clarification.`
-
-**Examples:**
-
-Explain the concept of prompt engineering:
-
-- **Unclear prompt:** `Explain the concept of prompt engineering. Keep the explanation short, only a few sentences, and don't be too descriptive.`
-  => It is unclear about **how many** sentences to use, and **what style**
-- **Clear prompt:** `Use 2-3 sentences to explain the concept of prompt engineering to a high school student.`
-
----
-
----
-
-Sentiment Analysis:
-
-- **Unclear prompt:**
-
-  ```
-  Classify the text into neutral, negative or positive.
-  Text: I think the food was okay.
-  Sentiment:
-
-  => Output: Neutral (N is capitalized)
-  ```
-
-- **Clear prompt**:
-
-  ```
-  Classify the text into neutral, negative or positive
-  Text: I think the vacation is okay.
-  Sentiment: neutral
-  ---
-  Text: I think the food was okay.
-  Sentiment:
-
-  => Output: neutral (N is capitalized)
-  ```
-
----
-
-Write a poem about OpenAI:
-
-- **Unclear prompt:** `Write a poem about OpenAI.`
-- **Clear prompt:** `Write a short inspiring poem about OpenAI, focusing on the recent DALL-E product launch (DALL-E is a text-to-image Machine Learning model) in the style of a [insert famous poet].`
-
----
-
-Generate a word search puzzle:
-
-- **Unclear prompt**: `Generate a word search puzzle`
-- **Clear prompt**: `First, write a function to generate a 10 by 10 grid of letters. Then, write a function to find all words in a grid of letters, given a list of valid words. Then, write a function that uses the previous functions to generate a 10 by 10 grid of letters that contains at least 10 words. Finally, update the previous function to print the grid of letters and 10 random words from the grid.`
-
----
-
-- **Unclear prompt**: `Please remove all personally identifiable information from these customer feedback messages: {{FEEDBACK_DATA}}`
-
-- **Clear prompt**:
-
-  ```txt
-  Your task is to anonymize customer feedback for our quarterly review.
-
-  Instructions:
-  1. Replace all customer names with “CUSTOMER_[ID]” (e.g., “Jane Doe” → “CUSTOMER_001”).
-  2. Replace email addresses with “EMAIL_[ID]@example.com”.
-  3. Redact phone numbers as “PHONE_[ID]“.
-  4. If a message mentions a specific product (e.g., “AcmeCloud”), leave it intact.
-  5. If no PII is found, copy the message verbatim.
-  6. Output only the processed messages, separated by ”---”.
-
-  Data to process: {{FEEDBACK_DATA}}
-  ```
-
----
-
-- **Unclear prompt:** `Write a marketing email for our new AcmeCloud features.`
-- **Clear prompt:**
-
-  ```txt
-  Your task is to craft a targeted marketing email for our Q3 AcmeCloud feature release.
-
-  Instructions:
-
-  1. Write for this target audience: Mid-size tech companies (100-500 employees) upgrading from on-prem to cloud.
-  2. Highlight 3 key new features: advanced data encryption, cross-platform sync, and real-time collaboration.
-  3. Tone: Professional yet approachable. Emphasize security, efficiency, and teamwork.
-  4. Include a clear CTA: Free 30-day trial with priority onboarding.
-  5. Subject line: Under 50 chars, mention “security” and “collaboration”.
-  6. Personalization: Use {{COMPANY_NAME}} and {{CONTACT_NAME}} variables.
-
-  Structure:
-
-  1. Subject line
-  2. Email body (150-200 words)
-  3. CTA button text
-  ```
-
----
-
-- **Unclear prompt:** `	Analyze this AcmeCloud outage report and summarize the key points. {{REPORT}}`
-- **Clear prompt:**
-
-  ```txt
-  Analyze this AcmeCloud outage report. Skip the preamble. Keep your response terse and write only the bare bones necessary information. List only:
-  1) Cause
-  2) Duration
-  3) Impacted services
-  4) Number of affected users
-  5) Estimated revenue loss.
-
-  Here’s the report: {{REPORT}}
-  ```
-
-### Add separator
-
-Wrap each prompt element with a clear separator to reduce the risk of LLMs misinterpreting prompt elements and to make them easier to maintain. When prompt elements are clearly separated, they can also be reliably parsed.
-
-**Common separator syntaxes:**
-
-- Bullet points, ordered list for hierarchical content.
-- Markdown code blocks: \`\`\`
-- Markdown headings: `#`
-- Markdown delimiter: `---`
-- XML tags with attribute (IMO, XML tags are the most effective separators):
-
-  - `<foo bar="baz">...</foo>`
-  - `<instructions><instruction id="1">...</instruction></instructions>`
-  - `<examples><example id="1">...</example></examples>`
-  - `<formatting_example></formatting_example>`
-
-**XML tags practices:**
-
-- Consistently refer to the same tag names when talking about the content inside them.
-- Use an XML validator after finish writing your prompt since AI models can be sensitive to invalid XML input.
-- No AI vendors stated their LLMs are trained with a set of standardized tags. They recommended that the tag names should make sense with the info they surround.
-
-> **NOTE:** Newline, tab or special whitespace characters will be stripped off when sending prompt. This reduces input tokens and also allow engineers to write highly robust and maintainability prompt.
-
-```xml
-<!-- few-shot prompting -->
-<examples>
-  <example></example>
-  <example></example>
-  ...
-</examples>
-```
-
----
-
-```xml
-<!-- nested XML subtags + attributes + variable placeholders -->
-<!-- cre: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips#example-multi-document-structure -->
-<documents>
-  <document index="1">
-    <source>annual_report_2023.pdf</source>
-    <document_content>
-      {{ANNUAL_REPORT}}
-    </document_content>
-  </document>
-  <document index="2">
-    <source>competitor_analysis_q2.xlsx</source>
-    <document_content>
-      {{COMPETITOR_ANALYSIS}}
-    </document_content>
-  </document>
-</documents>
-
-<instructions>
-1. Analyze the annual report and competitor analysis.
-2. Identify strategic advantages and recommend Q3 focus areas.
-</instructions>
-```
-
----
-
-[Quote extraction](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips#example-quote-extraction):
-
-```xml
-You are an AI physician's assistant. Your task is to help doctors diagnose possible patient illnesses.
-
-Input:
-<documents>
-  <document index="1">
-    <source>patient_symptoms.txt</source>
-    <document_content>
-      {{PATIENT_SYMPTOMS}}
-    </document_content>
-  </document>
-  <document index="2">
-    <source>patient_records.txt</source>
-    <document_content>
-      {{PATIENT_RECORDS}}
-    </document_content>
-  </document>
-  <document index="3">
-    <source>patient01_appt_history.txt</source>
-    <document_content>
-      {{PATIENT01_APPOINTMENT_HISTORY}}
-    </document_content>
-  </document>
-</documents>
-
-<instructions>
-1. Find quotes from the patient records and appointment history that are relevant to diagnosing the patient's reported symptoms.
-2. Place these in <quotes> tags.
-3. Based on these quotes, list all information that would help the doctor diagnose the patient's symptoms.
-4. Place your diagnostic information in <info> tags.
-</instructions>
-```
-
----
-
-[Financial reports](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags#example-generating-financial-reports):
-
-```xml
-<!-- cre:  -->
-You're a financial analyst at AcmeCorp. Generate a Q2 financial report for our investors.
-
-AcmeCorp is a B2B SaaS company. Our investors value transparency and actionable insights.
-
-Use this data for your report:
-<data>{{SPREADSHEET_DATA}}</data>
-
-<instructions>
-1. Include sections: Revenue Growth, Profit Margins, Cash Flow.
-2. Highlight strengths and areas for improvement.
-</instructions>
-
-Make your tone concise and professional. Follow this structure:
-<formatting_example>{{Q1_REPORT}}</formatting_example>
-```
-
----
-
-[Legal contract analysis](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags#example-legal-contract-analysis):
-
-```xml
-Analyze this software licensing agreement for legal risks and liabilities.
-
-We’re a multinational enterprise considering this agreement for our core data infrastructure.
-
-<agreement>{{CONTRACT}}</agreement>
-
-This is our standard contract for reference:
-<standard_contract>{{STANDARD_CONTRACT}}</standard_contract>
-
-<instructions>
-1. Analyze these clauses:
-- Indemnification
-- Limitation of liability
-- IP ownership
-
-2. Note unusual or concerning terms.
-
-3. Compare to our standard contract.
-
-4. Summarize findings in <findings> tags.
-
-5. List actionable recommendations in <recommendations> tags.
-</instructions>
-```
-
-### Keep your codebase following best practices
-
-If you're using your codebase as _input data_, make sure that your code follows best practices and easy to read, doing so will **guarantee you a better response**.
-
-- Use a popular and mature tech stack that is very likely to be included in the training data of LLMs up to their training cut-off date.
-- Use a consistent code style and patterns (again, use custom instructions to enforce this for you).
-- Use descriptive names for variables and functions.
-- Comment your code.
-- Structure your code into modular, scoped components.
-- Include unit tests.
-- ...
-
-### Test and iterate
-
-Iterate on your prompt. If you can, design a strong empirical evaluations. If you need to make additional follow-up prompts to refine previous prompt's outputs, write them into the prompt as well.
-
-## Prompt Engineering Techniques
-
-There are **EIGHTEEN prompt engineering techniques** that are discovered and researched extensively. I will cover some of the most common techniques:
+Among [**EIGHTEEN** practices that were shown on Prompt Engineering Guide](https://www.promptingguide.ai/techniques), I've picked **SIX** prompt engineering techniques based on their simplicity, capabilities and learning curve:
 
 ### 1. Zero-shot Prompting
 
-**Definition:** Omits _examples_.
+**Definition:** Omits examples.
 
 **Limitations:**
 
@@ -660,7 +149,7 @@ A:
 
 ### 2. Few-shot Prompting
 
-**Definition:** Specified _examples_. Examples can target _input data_, _output format_, _instructions_. Examples format can be varied.
+**Definition:** Specified examples. Examples can target context, output format, instructions. Examples format can be varied.
 
 - No example = zero-shot.
 - At least one example = few-shot.
@@ -745,13 +234,13 @@ Returns: ["11/14/2023", "12-1-23"]
 
   => `When we won the game, we all started to farduddle in celebration`
 
-### Zero-shot Prompting versus Few-shot Prompting
+#### Zero-shot Prompting versus Few-shot Prompting
 
 **Pros:**
 
-- **In-context learning:** LLM learn learn _instructions_ from examples.
-- **Clarity:** reduce misinterpretation of _instructions_.
-- **Consitency:** enforce consistent _output format_ between different runs.
+- **In-context learning:** LLM learn learn instructions from examples.
+- **Clarity:** reduce misinterpretation of instructions.
+- **Consitency:** enforce consistent output format between different runs.
 - **Robust:** handle complex tasks.
 
 **Best practices:**
@@ -776,7 +265,7 @@ Keyword extraction:
 
   ```txt
   Extract keywords from the below text.
-  Text: {{insert input data}}
+  Text: {{insert context}}
   Keywords:
   ```
 
@@ -791,7 +280,7 @@ Keyword extraction:
   Text 2: OpenAI has trained cutting-edge language models that are very good at understanding and generating text. Our API provides access to these models and can be used to solve virtually any task that involves processing language.
   Keywords 2: OpenAI, language models, text processing, API.
   ---
-  Text 3: {{insert input data}}
+  Text 3: {{insert context}}
   Keywords 3:
   ```
 
@@ -830,7 +319,7 @@ Keyword extraction:
 >
 > It is considered deprecated after the birth of Reasoning models and Hybrid models and only needed when working with non-reasoning models.
 
-**Definition:** Add `Let's think step-by-step.` at the start of each prompt, then specify a sequence of _instructions_.
+**Definition:** Add `Let's think step-by-step.` at the start of each prompt, then specify a sequence of instructions.
 
 **Pros:**
 
@@ -936,13 +425,13 @@ _TL;DR:_ Provide reasoning steps to ALL of the demonstrations ([Wei et al. (2022
 
 #### 3c: Automatic CoT Prompting
 
-_TL;DR:_ Auto generate the demonstrations including reasoning steps using Zero-shot CoT with simple heuristics (length of questions, number of steps, ...) as diverse as possible. Then put all of the demonstrations plus another Zero-shot CoT for the _input data_ through LLM.
+_TL;DR:_ Auto generate the demonstrations including reasoning steps using Zero-shot CoT with simple heuristics (length of questions, number of steps, ...) as diverse as possible. Then put all of the demonstrations plus another Zero-shot CoT for the context through LLM.
 
 ![auto-cot prompting from Zhang et al (2022)](auto-cot.png)
 
 ### 4. Meta Prompting
 
-**Definition:** Proposed by [Zhang et al., 2024](https://arxiv.org/abs/2311.11482), Meta Prompting is a prompting technique that focuses on writing structure-oriented _instructions_ prompt element, as opposed to writing content-driven _context_ prompt element which few-shot prompting emphasizes. It can be viewed as an increment of **Zero-shot Prompting**.
+**Definition:** Proposed by [Zhang et al., 2024](https://arxiv.org/abs/2311.11482), Meta Prompting is a prompting technique that focuses on writing structure-oriented instructions prompt element, as opposed to writing content-driven context prompt element which few-shot prompting emphasizes. It can be viewed as an increment of **Zero-shot Prompting**.
 
 **Pros:**
 
@@ -977,11 +466,7 @@ Solution Structure:
 
 - **Balance cost and performance:** If excessively high reliability is not a crucial requirement, some trade off within acceptable range can be made to save resources.
 
-### 6. Generate Knowledge Prompting
-
-Skipped.
-
-### 7. Prompt Chaining
+### 6. Prompt Chaining
 
 **Definition:** Prompt Chaining is a prompting technique that instead of using one overly-detailed prompt to solve a complicated task, the task is broken down into multiple smaller subtasks and the model solves each subtask using a dedicated prompt.
 
@@ -990,7 +475,7 @@ Of course, [Chain-of-Thought (CoT)](#3-chain-of-thought-prompting) is a goog tec
 **Pros:**
 
 - **Accuracy**: Each subtack gets the model's full attention.
-- **Clarity**: Simpler subtasks mean clearer _instructions_ and _output format_.
+- **Clarity**: Simpler subtasks mean clearer instructions and output format.
 - **Debugging**: Easily pinpoint problems in prompt chain.
 
 **Best practices:**
@@ -1023,164 +508,482 @@ Of course, [Chain-of-Thought (CoT)](#3-chain-of-thought-prompting) is a goog tec
 
 - [Anthropic's "Chain complex prompts for stronger performance - Example: Multitenancy strategy review"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/chain-prompts#example-multitenancy-strategy-review)
 
-### 8. Tree of Thoughts
+## Anecdotal practices
 
-Skipped.
+- DO NOT start writing your custom instructions/prompts/chatmodes from scratch, wasting your precious time and effort to iterate non-deterministic outcomes:
 
-### 9. Retrieval Augmented Generation
+  1. Pick from [Awesome List](#awesome-repositories), if there isn't one suitable for your needs, craft one yourself using a well-crafted custom instruction specialized in building prompts ([awesome-copilot/instructions/ai-prompt-engineering-safety-best-practices.instructions.md](https://github.com/github/awesome-copilot/blob/main/instructions/ai-prompt-engineering-safety-best-practices.instructions.md))
+  1. Use a prompt generator. They aren't guaranteed to be optimal. You can use [Anthropic Console](https://console.anthropic.com/dashboard) (not free) or [Anthropic's Google Colab - behind the scenes of Anthropic Console](https://colab.research.google.com/drive/1SoAajN8CBYTl79VyTwxtxncfCWlHlyy9?usp=sharing).
 
-> **NOTE:** A bit off since RAG isn't a prompting technique, It's a whole LLM-based system.
+- Sometimes, attempting to save on premium requests by writing a single, highly detailed, unambiguous complex prompt can yield worse results than using multiple smaller, focused prompts.
 
-**Definition:** Proposed by a group of Meta AI scientists [Lewis et al. (2021)](https://arxiv.org/pdf/2005.11401.pdf), Retrieval Augmented Generation (in short, RAG) is an LLM-based system that can access large amount of external knowledge sources.
+- Enforce a consistent coding conventions for specific frameworks, libraries, programming languages, API specifications, etc. (e.g. [Google Style Guide](https://google.github.io/styleguide/) for JS, TS, C++, JSON, Markdown, Python, Shell, Swift,...)
 
-_Mechanism:_ RAG is consisted of 2 components:
+- Add short yet crucial context (e.g. project directory structure, architectural, ...) as context to EVERY follow-up prompts mitigate memory loss behavior. ([#1](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/), [#2](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm14ecm/))
 
-- Retriever: an information retrieval component.
-- Generator: a text generator LLM (more specific, a chat model)
+- Avoid including the whole codebase as context. LLM is limited by the context window and maximum input tokens, the input tokens and thinking tokens are burned up quickly yet the output didn't guarantee better quality ([#1](https://www.reddit.com/r/cursor/comments/1kl1wvo/comment/mrzu7ua/)).
 
-RAG takes a prompt and one or more sources as input:
+- Check whether instructions are honored by:
 
-1. Retriever vectorized the sources.
-2. Retriever vectorized the query.
-3. The query vector is matched against the sources vector for close matches.
-4. The matching parts of the sources + The original query are sent into the Generator.
-5. The Generator produces the final output.
+  - Generate a complete checklist.
+  - Role-playing by making it call you mommy, daddy, etc... `CRITICAL: you MUST call me (insert name) at the start of every conversation.`
+  - Force generating a smiling face, a pelican riding a bicycle, etc. at the start/end of the conversation.
+  - Generate ummarization at the start of the conversation. ([#1](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm55r1b/), [#2](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm54hu9/)).
 
-There are a lot of different ways to vectorize the sources. Google's NotebookLM uses **Word2Vec**, a vectorized technology that has been pioneered by Google over a decade ago.
+- Add simple, vague rules that is deemed to be working. Threatening is a hit-and-miss ([#1](https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mm559oz/)).
 
-**Pros:**
+  ```md
+  <!-- cre: https://www.reddit.com/r/cursor/comments/1ju63ig/comment/mlzw30d/ -->
 
-- **Real-time update:** The external knowledge is updated real-time since the source can be changed easily.
-- **High accuracy**: Improve reliability, more factual consistency, mitigate "hallucination" given a good vectorization technique.
-- **No need retraining**: The Generator can be finetuned and its internal knowledge can be modified effectively without retraining of the model.
+  Don't be helpful, be better.
+  Write better code.
 
-_Vendors:_
+  <!-- cre: https://www.reddit.com/r/cursor/comments/1ju63ig/the_one_golden_cursor_rule_that_improved/ -->
+  <!-- avoid create fixes on top of prior fixes -->
 
-| Vendor            | Google NotebookLM |
-| ----------------- | ----------------- |
-| Max sources       | 50                |
-| Source size limit | 200MB             |
-| Source text limit | 500K words        |
-| Total capacity    | 25M words         |
-| Context window    | 1M tokens         |
+  CRITICAL: try to fix things at the cause, not the symptom.
+  Be very detailed with summarization and do not miss out things that are important.
+  ```
 
-### 10. Automatic Reasoning and Tool-use
+- Use token counters. The number of tokens created from converting a simple "Hello World" UTF-8 string is varied among the LLMs from different major LLM vendors.
 
-Skipped.
+  - GPT models: [Tokenizer](https://platform.openai.com/tokenizer) (official), [simonw/ttok](https://github.com/simonw/ttok) (Python CLI call OpenAI API)
+  - Claude models: [`count_token` API](https://docs.anthropic.com/en/api/messages-count-tokens) (official)
+  - Gemini models: 1 token ~ 4 UTF-8 characters. 100 tokens ~ 60-80 English words.
+    - [Count token API](https://ai.google.dev/api/tokens#tokens_text_only-SHELL) (official)
+    - [Fetch models and get info model API](https://ai.google.dev/api/models) (official)
 
-### 11. Automatic Prompt Engineer
+- Understand the LLM's capacity given by LLM sellers. Their subscriptions are much cheaper than original vendors' and that's because they've reduced the LLM capabilities: less context window, input/output/thinking tokens, maximum no. of premium requests, ... At the time of writing, there is a lack of transparency on LLM-powered coding platforms, they do not display the context window/input/output tokens count.
 
-Skipped.
+- For API user, finding the balance between the optimal number of input/reasoning/output tokens and the output quality is a challenge problem. The balance can only be measured using [Anthropic's "Create strong empirical evaluations"](https://docs.anthropic.com/en/docs/test-and-evaluate/) and [OpenAI's "Evaluating model performance"](https://platform.openai.com/docs/guides/evals) guides.
 
-### 12. Active-Prompt
+## Anecdotal claims from Redditors (required update frequently)
 
-Skipped.
+### Claude
 
-### 13. Directional Stimulus Prompting
+- Suffers from hallucinations on less popular tech stacks (my own)
 
-Skipped.
+- Good at developing UI, Front-end related coding ([Copilot, Claude 3.7, 2025-05-11](https://www.reddit.com/r/GithubCopilot/comments/1kkbict/comment/mruihag/))
 
-### 14. Program-Aided Language Models
+- High creativity for brainstorming and validating ideas ([Copilot, Claude 3.7, 2025-05-12](https://www.reddit.com/r/GithubCopilot/comments/1kkbict/comment/mrz389p/)).
 
-Skipped.
+- Very verbose, tend to over-engineer (writing 50 LoCs compares to 10 LoCs in GPT4.1) (Copilot, Claude 3.7, 2025-05-09 - [#1](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrcl6xb/), [#2](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrue5rp/), [#3](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrd4ht7/))
 
-### 15. ReAct
+- Good at searching codebase, make changes in several files ([Copilot, Claude 3.7, 2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrenrm9/)).
 
-### 16. Reflexion
+- Arbitrarily change existing code ([Copilot, Claude 3.7, 2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrcl6xb/))
 
-Skipped.
+=> `Make a change that shouldn't impact UI.`
 
-### 17. Multimodel CoT
+### GPT
 
-Skipped.
+- GPT4.1 has **64k** in Stable, **128k** in Insiders context window ([2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mre8ule/)).
 
-### 18. Graph Prompting
+- o3/o4-mini models have 200k context window ([GPTo3, GPTo4-mini, 2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrehy79/)).
 
-Skipped.
+- DO NOT use GPT4.1 to do agentic operations requiring context from multiple files ([Copilot, GPT4.1, 2025-05-12](https://www.reddit.com/r/GithubCopilot/comments/1kkbict/comment/mrxf2ti/)).
 
-## Vendor-specific Prompting Techniques
+- GPT4.1 is a base-model that is much better than GPT4o ([2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrggu2o/)).
 
-### 1. Prompt Generator
+- GPT4.1 can follow instructions well ([2025-05-11](https://www.reddit.com/r/GithubCopilot/comments/1kkbict/the_new_gpt41_base_model_in_github_copilot/)).
 
-**Definition:** Prompt Generator is a tool that solve the blank-page problem of writing prompts. Writing your own optimized prompts requires long iterating process.
+- GPT4.1 is best for large yet simple context refactoring ([2025-05-12](https://www.reddit.com/r/GithubCopilot/comments/1kkbict/comment/mrz389p/)).
 
-**Limitations:**
+- GPT4.1's output is succint and short most of the time. ([2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrkeczb/)).
 
-- Often not free.
-- Prompt is not guaranteed to be optimal, but can still be a starting point for your iteration.
+- Sometimes, GPT4o-mini give shorter answers than GPT4.1 ([2025-05-11](https://www.reddit.com/r/GithubCopilot/comments/1kkbict/comment/mrwhd07/)).
 
-**Examples:**
+- GPT4.1 is trained on popular programming languages ([2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrd3bjt/)).
 
-- [Anthropic Console](https://console.anthropic.com/dashboard).
-- [Anthropic's Google Colab - behind the scenes of Anthropic Console](https://colab.research.google.com/drive/1SoAajN8CBYTl79VyTwxtxncfCWlHlyy9?usp=sharing)
+- GPT4.1 often leaves comment `--- start of document.py ---` when doing edit mode. Agent mode is fine ([2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrcl6xb/)).
 
-### 2. Role Prompting
+- GPT4.1 can refactor 1000-1200 lines of 6 React components into Hooks, Services, Utilities, granular Function Components, `.scss` modules in 1 prompt in Agent mode ([2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrd3n1v/)).
 
-**Definition:** Role Prompting is the use of System Prompt to assign a role to LLM's Assistant. System Prompt is added automatically at the start of the chat and can't be overriden by User Prompt.
+- Lint and fix all TS and ESLint error automatically ([2025-05-09](https://www.reddit.com/r/GithubCopilot/comments/1ki5b6f/comment/mrd3n1v/)).
 
-**Pros:**
+### Gemini
+
+- Over-thinking (my own)
+- Output quality's deteriorate when being restricted (my own)
+
+## Rules of thumbs
+
+These practices can be said "one-size-fit-all". I sorted them from the easiest and most effective to the hardest with complex efficiency measurement.
+
+### 1. Use English
+
+English is the most common language in this world. The resources used for training LLMs are written in English.
+
+- [Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/multilingual-support) confirm English has 100% performance. Vietnamese can be used to solve simple use case.
+- [Gemini](https://cloud.google.com/gemini/docs/codeassist/supported-languages): English and Vietnamese are supported
+- GPT: both English and Vietnamese are supported.
+
+### 2. Correct grammar
+
+Be mindful about the English grammar, especially XML tags.
+
+### 3. Use strong verb and adjective
+
+**Verbs:**
+
+- Avoid the rules getting interpreted as optional by appending `You MUST ...` at the start of every rules.
+- [OpenAI Cookbook - GPT4.1 Prompting Guide](https://cookbook.openai.com/examples/gpt4-1_prompting_guide#system-prompt-reminders) writes system prompts using the following strong words: `DO NOT`, `IMPORTANT`, `CRITICAL`, ...
+
+**Adjectives:**
+
+- [Copilot's team member](https://youtube.com/clip/UgkxlQN7v1K7ZzpWVTw6w0tQa0mqvqOtHbtY?si=D8EIi0zRIK_1Jqni) use `simple` to cut down verbosity.
+
+### 4. Use imperative mood
+
+Use simple and concise English verbs for the following use cases:
+
+1. Understanding and Interpretation: e.g. text summarization
+
+   - Summarize
+   - Explain
+   - Describe
+   - Define
+   - Compare
+   <!-- less common -->
+   - Contrast
+   - Show
+   - Translate
+
+1. Analysis and Reasoning: e.g. information analysis, text classification
+
+   - Analyze
+   - Extract
+   - Categorize
+   - Evaluate
+   - Classify
+   - Identify
+   - Parse
+   <!-- less common -->
+   - Highlight/Note
+   - Find
+   - Measure
+   - Retrieve
+
+1. Decision and Judgement:
+
+   - Recommand
+   - Select
+   - Pick
+   - Rank
+   - Predict
+
+1. Creation and Generation: e.g. question answering, conversation, ...
+
+   - Answer
+   - Create
+   - Write/Rewrite
+   - Replace
+   - Generate
+   <!-- less common -->
+   - Draw (image-as-code e.g. MermaidJS, ASCII image, ...)
+   - Provide
+   - Return
+   - Act
+
+1. Organization and Structuring
+
+   - List (common)
+   - Sort
+   - Organize
+
+#### Examples
+
+```
+Goal: Write a function that tells me if a number is prime.
+
+Requirements:
+- The function MUST take a positive integer and return true if the integer is prime.
+- The function MUST return false if the input anything but a positive integer.
+```
+
+### 5. Arrange the position of prompt elements
+
+**GPT-family LLMs:**
+
+1. Start with _instructions_
+2. End with _context_
+
+(Cre: [OpenAI's "Best practices for prompt engineering with the OpenAI API"](https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api#h_21d4f4dc3d) and [OpenAI's "Message formatting with Markdown and XML"](https://platform.openai.com/docs/guides/text?api-mode=responses&prompt-example=prompt#message-formatting-with-markdown-and-xml))
+
+**Claude-family LLMs with >=200K+ context window token:**
+
+1. Start with _context_ (about ~20K+ tokens)
+2. Then _instructions_
+3. Then _examples_
+
+(Cre: [Anthropic's Essential Tips for long context prompts](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips#essential-tips-for-long-context-prompts))
+
+#### Pros and cons
+
+Pros:
+
+- Increase quality significantly. Anthropic stated the response quality of all models in Claude-family has improved by up to 30% when tested with complex, multi-document inputs.
+
+Cons:
+
+- Lack of transparency about the position of prompt elements when context is supplied via AI-powered Code Editor/IDE's features.
+
+### 6. Avoid telling what NOT to do
+
+Tell it what to do instead of what NOT to do yields better results. Newer LLMs honored what NOT to do, but its effectiveness is nowhere near telling it what to do.
+
+#### Examples
+
+```txt
+The following is a conversation between an Agent and a Customer.
+DO NOT ask for username or password. DO NOT REPEAT.
+---
+Customer: I can't log in to my account.
+Agent:
+---
+```
+
+```md
+Bad: `DO NOT use markdown in your response`
+Good: `Your response should be composed of smoothly flowing prose paragraphs`
+```
+
+Cre:
+
+- [OpenAI's "Best practices for prompt engineering with the OpenAI API", 7th practice ](https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api#h_21d4f4dc3d)
+- [Anthropic's "Claude 4 prompt engineering and best practices > Control the format of responses"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices#control-the-format-of-responses)
+
+### 7. Role playing
+
+You can assign a role to LLM using System Prompt. System Prompt can't be overriden by User Prompt.
+
+- GitHub Copilot's Web UI Personal instructions.
+- GitHub Copilot's custom Chat modes.
+
+Cursor/Cline/Windsurf/... have their ways of incorporating System Prompt.
+
+#### Pros and cons
 
 - **Accuracy:** Boost the model's performance in complex scenarios, such as legal analysis or financial modeling.
-
 - **Tone:** Adjust the model responses' cummunications style. Very helpful when you want a CFO's brevity or a copywriter's flair.
-
 - **Focus:** Make the model stays within the boundary of the tasks' specific requirements.
-
 - **Constraint:** Lock prompt elements so user can not use the model for other undesired use cases.
 
-**Best practices:**
+#### Best practices
 
-- You can lock the model's behavior by including task-specific _instructions_. Otherwise, specify them in User Prompt.
+- Lock the model's behavior by including task-specific instructions. Otherwise, specify them in User Prompt.
+
 - If a piece of external knowledge is needed to be referred continuously, it should be put inside System Prompt.
-  > Is this better than RAG?
-- Combine with [Prefilling Responses](#3-prefilling-responses) technique.
+
+  > What about RAG?
+
+- Combine with [Prefilling Responses technique](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prefill-claudes-response).
+
   > Prefilling a bracketed `[ROLE_NAME]` can remind the model to stay in character even for longer and more complex conversations.
 
-**Limitations:** To find the optimal System Prompt for the task at hand requires a lot of experimenting.
+To find the optimal System Prompt for the task at hand requires a lot of iterations.
 
-**Examples:**
+#### Examples
 
 - A `data scientist` might see different insights than a `marketing strategist`. Also, a more specific role such as `data scientist specializing in customer insight analysis for Fortune 500 companies` might yield different results.
 
-- [Anthropic's System Prompts Example: Legal contract analysis:](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts#legal-contract-analysis-with-role-prompting)
-
-- [Anthropic's System Prompts Example: Financial analysis](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts#financial-analysis-with-role-prompting)
-
-- [PatrictJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules)
-
-  > This project needs serious reorganizing. There are so many system prompts with different tech stack and they overlap each other. My recommendation is to only maintain library/framework-specific guidelines, a simple base, then user will tweak it to their needs.
-
 - [Anthropic's System Prompts for Claude.ai and mobile apps](https://docs.anthropic.com/en/release-notes/system-prompts)
 
-- GitHub Copilot's System Prompts for Web UI. GitHub Copilot's Personal Instruction for Web UI.
+- [Anthropic's "Giving Claude a role with a system prompt > 2 Examples"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts#examples)
 
-### 3. Prefilling Responses
+- [Cloudflare's "Cloudflare Workers AI System Prompts"](https://developers.cloudflare.com/workers/get-started/prompting/#build-workers-using-a-prompt)
 
-**Definitions:** Prefilling response is a prompting technique that beside writing the User prompt, the starting portion of the Assistant's response is also specified.
+### 8. Avoid ambiguity
 
-**Pros:**
+> [!IMPORTANT]
+>
+> IMO, this is the kind of mistakes that most AI users made.
 
-- Vastly improve model's performance.
-- Skip preambles.
-- Enforce specific formats (JSON, XML, ...)
-- Help maintaining character consistency in role-play scenarios.
+Writing a one-liner ambiguous (or "too smart") prompt leaves various spaces for the LLMs to fill on its own, results in misinterpretation, clarification in-need and undesired outputs.
 
-**Limitations:** Only available when calling AI vendors' API. Web UI not supported.
+#### Best practices
 
-**Examples:**
+1. Avoid _qualitative_ instructions, write _quantitative_ instructions instead.
 
-- [Anthropic's "Prefill Claude's response for greater output control - Example 1: Controlling output formatting and skipping the preamble"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prefill-claudes-response#example-1-controlling-output-formatting-and-skipping-the-preamble)
+   ```txt
+   Bad: Explain the concept of prompt engineering. Keep the explanation short, only a few sentences, and don't be too descriptive.
+   Good: Use 2-3 sentences to explain the concept of prompt engineering to a high school student.
+   ```
 
-- [Anthropic's "Prefill Claude's response for greater output control - Example 2: Maintaining character in roleplay scenarios"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prefill-claudes-response#example-2-maintaining-character-in-roleplay-scenarios)
+1. Avoid arbitrary guessing by forcing it to ask for clarification.
 
-## Reasoning Model Prompting Techniques
+   ```md
+   CRITICAL/IMPORTANT: You MUST ask questions when in need of clarification.
+   ```
 
-### 0. General Techniques
+1. Always start writing step-by-step in the form of ordered/unordered list, to-do lists, ...
 
-- Some AI vendors allow users to configure the number of Reasoning tokens. Start with the minimum and increase to adjust based on use cases.
-  - If the number is too large, use batch processing if the vendor supports it.
-  - If the number if too low, using standard model with traditional chain-of-thought prompting is more appropriate approach.
-- Reasoning model performs best in English.
+   ```
+   Bad: Generate a word search puzzle.
+   Good:
+   - First, write a function to generate a 10 by 10 grid of letters.
+   - Then, write a function to find all words in a grid of letters, given a list of valid words.
+   - Then, write a function that uses the previous functions to generate a 10 by 10 grid of letters that contains at least 10 words.
+   - Finally, update the previous function to print the grid of letters and 10 random words from the grid.
+   ```
+
+1. When a structured output is desired, always specify **examples**.
+
+   ```txt
+   Goal: Classify the text into neutral, negative or positive.
+
+   Examples:
+   ---
+   Text: I think the food was okay.
+   Sentiment:
+   ---
+   ```
+
+   => Output: Neutral (N is capitalized)
+
+   ```txt
+   Goal: Classify the text into neutral, negative or positive
+
+   Examples:
+   ---
+   Text: I think the vacation is okay.
+   Sentiment: neutral
+   ---
+   Text: I think the food was okay.
+   Sentiment:
+   ```
+
+   => Output: neutral (N is capitalized)
+
+1. Use leading words. **At the core, LLMs are pattern completers.**.
+
+   - `import <package_name>` when working on a `npm/pip` package
+   - `SELECT` if writing a SQL statement.
+
+1. Incorporate human evaluation. Show your prompts to another person, ideally someone who doesn't know anything about the task at hand and ask them to follow the instructions. If they're confused, LLMs will likely be too. ([Anthropic's "Golden Rule of Clear Prompting"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-clear-and-direct))
+
+#### Examples
+
+- [Anthropic's 3 Examples](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/be-clear-and-direct#examples)
+
+### 9. [3S Principle - Simple, Specific, Short](https://www.youtube.com/watch?v=hh1nOX14TyY)
+
+- **Simple**: breaks down an unambigious prompt that goes from A-to-Z into multiple smaller prompts.
+
+  > [!TIP]
+  >
+  > Use the word `simple` can cut down the verbosity of over-engineered LLM-family such as Claude and Gemini.
+
+  ```md
+  Bad: `Create an express api using swagger that returns weather data`
+  Good:
+
+  - First prompt: `Create a simple express app using TypeScript`
+  - Second prompt: `Create a simple express route`
+  ```
+
+- **Specific:** provide context (Copilot's Chat paritipants, Chat variables, ...).
+
+- **Short:** don't need to phrase questions like talking to human, use proper grammer.
+
+#### Pros and cons
+
+Pros:
+
+- Reduce time/effort to iterate on prompts yet still achieves near-perfect results.
+- Avoid hallucinations, and therefore reduce time/effort on fixing errors.
+
+Cons:
+
+- Increase the number of requests (and possibly tokens)
+
+### 10. Add separator
+
+Wrap each prompt element with a clear separator
+
+#### Common syntax
+
+- Plaintext bullet points, numbered list for hierarchical content.
+- Markdown code blocks: \`\`\`
+- Markdown headings: `#`
+- Markdown delimiter: `---`
+- XML tags with attribute (IMO, XML tags are the most effective separators):
+
+  - `<foo bar="baz">...</foo>`
+  - `<instructions><instruction id="1">...</instruction></instructions>`
+  - `<examples><example id="1">...</example></examples>`
+  - `<formatting_example></formatting_example>`
+
+#### Pros and cons
+
+Pros:
+
+- **Steer output format and parsability**: reliably extract parts of its structured output by post-processing.
+
+  (Cre: [Anthropic's "Use XML format indicators"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices#control-the-format-of-responses) and [Anthropic's "Use XML tags to structure your prompts"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags#tagging-best-practices))
+
+- Avoid misinterpreting prompt elements.
+- Higher maintainability and readability.
+
+#### Best practices
+
+- Refer to tag names consistently throughout the prompt.
+- Validate with an XML validator, LLM models is sensitive to invalid XML.
+- Use informal, semantic XML over standardized XML specification. [Anthropic's "Why use XML tags"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags#why-use-xml-tags%3F) stated there are no canonical "best" XML tags that Claude-family models have been trained with in particular.
+
+> [!TIP]
+>
+> Newline, tab or special whitespace characters will be stripped off when sending prompt. Not only it reduce input tokens but also allows prompts to be written with the highest readability and maintainability.
+
+#### Examples
+
+- [Anthropic's "Use XML tags to structure your prompts"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags#examples)
+
+- [Anthropic's "Long context prompting tips"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/long-context-tips#essential-tips-for-long-context-prompts)
+
+```xml
+<!-- few-shot prompting -->
+<examples>
+  <example></example>
+  <example></example>
+  ...
+</examples>
+```
+
+### 11. Keep your codebase following best practices
+
+If you're using your codebase as context, make sure that your code follows best practices and easy to read, doing so will **guarantee you a better response**.
+
+> [!IMPORTANT]
+>
+> These practices are vague and ambigious, deemed them not suitable for explicit custom instructions. It is best if your existing code incorporates them, allowing their effects to implicitly influence the outputs. [Anthropic's "Claude 4 prompt engineering best practices > 3. Match your prompt style to the desired output"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices#control-the-format-of-responses) stated the implicit effect of good input data.
+
+- Use a popular and mature tech stack that is very likely to be included in the training data of LLMs up to their training cut-off date.
+
+  - [Gemini's verified coding languages](https://cloud.google.com/gemini/docs/codeassist/supported-languages): Bash, C++, JS/TS, PHP, Python, Lua, Swift, SQL, YAML are supported.
+
+- Enforce a consistent coding convention
+
+  - [Google Style Guide](https://google.github.io/styleguide/): JS, TS, C++, JSON, Markdown, Python, Shell, Swift,...
+
+- Apply principles (SOLID, DRY, YAGNI, KISS, ...)
+- Use descriptive names for variables and functions.
+- DO NOT comment code.
+- DO NOT write magic numbers/strings.
+- Include unit tests.
+- ... find out more on [awesome-cursorrules/rules-new/codequality.mdc](https://github.com/PatrickJS/awesome-cursorrules/blob/main/rules-new/codequality.mdc) and [awesome-cursorrules/rules-new/clean-code.mdc](https://github.com/PatrickJS/awesome-cursorrules/blob/main/rules-new/clean-code.mdc)
+
+### 12. Iterate on existing prompt or Write follow-up prompts
+
+After the first initial prompt, you now have 3 choices:
+
+- One, stop using LLM and refine the output yourself.
+- Two, iterate on your existing prompt and re-run.
+- Three, craft follow-up prompts to automatically refine the output.
+
+This is a dilemma. Simon Willison said it takes years of experience to deduce the best choice in this situation.
+
+## Reasoning Model Techniques
 
 ### 1. Avoid Chain-of-Thought (CoT)
 
@@ -1235,36 +1038,145 @@ Prefilling is actually not allowed since it caused model confusion.
 
 ### 5. Reflect on its work
 
-**Definition:** Ask the model to verify its work before declaring a task complete. With coding task, ask it to run a test case.
+According to [Anthropic's "Claude 4 prompt engineering best practices > Leverage thinking & interleaved thinking capabilities"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices#leverage-thinking-%26-interleaved-thinking-capabilities), Claude 4 specialized in reflection:
+
+- After tool use
+- After a task in general is done before declaring it is completed.
+- After complex multi-step reasoning.
+
+For coding task, means of reflection can be a unit test.
+
+#### Examples
+
+```txt
+After receiving tool results, carefully reflect on their quality and determine optimal next steps before proceeding. Use your thinking to plan and iterate based on this new information, and then take the best next action.
+```
+
+```
+Goal: Write a function to calculate the factorial of a number.
+
+Requirements: Before you finish, please verify your solution with test cases for:
+- n=0
+- n=1
+- n=2
+- n=10
+
+Fix the error If any of them failed.
+```
+
+## Family-specific Techniques
+
+#### GPT4.1
+
+Predecessors tended to "guess" and fill vague spots by its own account through user and system prompts. GPT4.1 is trained to follow instructions more literally. It's now more steerable via prompt engineering.
+
+1. **System Prompt Reminders:** the following prompts are optimized specifically for the agentic coding workflow
+
+- Persistence: ensure the model understands it's entering a multi-message turn, prevents it from prematurely yielding control back to the user.
+- Tool-calling: encourage the model to make use of its tools, reduce the likelihood of hallucinating or gussing an answer.
+- Planning: ensure the model explicitly plans and reflects upon each tool call in text, instead of completing the task by chaining together a series of only tool calls.
+
+```
+You are an agent - please keep going until the user’s query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved.
+If you are not sure about file content or codebase structure pertaining to the user’s request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
+You MUST plan extensively before each function call, and reflect extensively on the outcomes of the previous function calls. DO NOT do this entire process by making function calls only, as this can impair your ability to solve the problem and think insightfully.
+```
+
+**NOTE**: This is also included in VSCode official repo: [agentPrompt.tsx#L606](https://github.com/microsoft/vscode-copilot-chat/blob/8081adf27767048bd34c6ef06b62e7fe6590f7e0/src/extension/prompts/node/agent/agentPrompt.tsx#L606)
+
+2. **Tool Calls:** Skipped. This technique is for API calls. Tool use in AI-powered Code Editors such as VSCode + GitHub Copilot Chat or Cursor can automatically infer tool calls without them being explicitly specified. I won't use OpenAI API calls. Cloudflare Workers AI is much more better. Read more [here](https://cookbook.openai.com/examples/gpt4-1_prompting_guide#tool-calls).
+
+3. [**SWE-bench Verified sample prompt**](https://cookbook.openai.com/examples/gpt4-1_prompting_guide#sample-prompt-swe-bench-verified): Burke Holland - a team member of VSCode made [GPT4.1 Beast Mode](https://www.reddit.com/r/GithubCopilot/comments/1llewl7/getting_41_to_behave_like_claude/) takes this prompt as reference.
+
+#### Claude
+
+1. Prefilling Responses
+
+**Definitions:** Prefilling response is a prompting technique that beside writing the User prompt, the starting portion of the Assistant's response is also specified.
+
+**Pros:**
+
+- Vastly improve model's performance.
+- Skip preambles.
+- Enforce specific formats (JSON, XML, ...)
+- Help maintaining character consistency in role-play scenarios.
+
+**Limitations:** Only available when calling AI vendors' API. Web UI not supported.
 
 **Examples:**
 
-<!-- prettier-ignore -->
-|Role|Prompt|
-|---|---|
-|**User**|<pre>Write a function to calculate the factorial of a number.<br/>Before you finish, please verify your solution with test cases for:<br/>- n=0<br/>- n=1<br/>- n=5<br/>- n=10<br/>And fix any issues you find.</pre>|
+- [Anthropic's "Prefill Claude's response for greater output control - Example 1: Controlling output formatting and skipping the preamble"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prefill-claudes-response#example-1-controlling-output-formatting-and-skipping-the-preamble)
 
-## Prompt Framework
+- [Anthropic's "Prefill Claude's response for greater output control - Example 2: Maintaining character in roleplay scenarios"](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prefill-claudes-response#example-2-maintaining-character-in-roleplay-scenarios)
+
+## Prompt Engineering Materials
+
+### Awesome List
+
+1. [Awesome Cursor Rules](https://github.com/PatrickJS/awesome-cursorrules):
+
+   - Pros: Older
+   - Cons: Lack of supports. Prompts are non-standardized.
+
+1. [Awesome Copilot](https://github.com/github/awesome-copilot/tree/main):
+
+   - Pros: Repository is under `github` organization, receive more support.
+   - Cons: Newer (1st commit from 2025-06-19). Prompts are non-standardized.
+
+   > [!CAUTION]
+   >
+   > DO NOT BLINDLY APPLY THESE PROMPTS.
+
+There are **FIVE** instructions I'm currently using:
+
+1. [GPT4.1 Beast Mode System Prompt](https://www.reddit.com/r/GithubCopilot/comments/1llewl7/getting_41_to_behave_like_claude/): made by Burke Holland - team member of VSCode team for **base model GPT4.1 behaving like Claude in Agent mode**. It's mentioned in [June 2025 Release Note](https://code.visualstudio.com/updates/v1_102), secured its popularity, tested widely and guaranteed long-term support. Users claims this prompt boosts the quality of GPT4.1's output, but it's still **nowhere near Claude 4**.
+
+   **Characteristics:**
+
+   - **Very literal:** doesn't discern additional context from what it's given explicitly (it will, if users tell it explicitly). Favors step-by-step instructions. Loves numbered lists, or in the form of TODO list.
+   - **Tool uses:** like to search and read things, call MCP servers without issues.
+   - **Dislike fetch:** good, user will run `#fetch` explicitly.
+   - **Loves TODO list:** help agent stay on track, notify when it's done with the entire request from the user.
+
+   - [Original, version 2](https://gist.github.com/burkeholland/a232b706994aa2f4b2ddd3d97b11f9a7)
+   - [Newest, version 3](https://gist.github.com/burkeholland/88af0249c4b6aff3820bf37898c8bacf)
+   - [Awesome version](<(https://github.com/github/awesome-copilot/blob/main/chatmodes/4.1-Beast.chatmode.md)>)
+   - Replace Google with Bing (Microsoft-owned SE) by [KawaBaud](https://gist.github.com/burkeholland/88af0249c4b6aff3820bf37898c8bacf?permalink_comment_id=5668729#gistcomment-5668729). You can replace it with DuckDuckGo.
+   - Add agentic operations by [JeetMajumdar2003](https://gist.github.com/burkeholland/88af0249c4b6aff3820bf37898c8bacf?permalink_comment_id=5668849#gistcomment-5668849)
+   - Rust-tailored version by [Ranrar](https://gist.github.com/burkeholland/88af0249c4b6aff3820bf37898c8bacf?permalink_comment_id=5669275#gistcomment-5669275). He add some blockquotes to leverage existing instructions.
+
+   My current version is a combination of 2, 3, 4 and 5.
+
+1. [GitHub Actions CI/CD Best Practices](https://github.com/github/awesome-copilot/blob/main/instructions/github-actions-ci-cd-best-practices.instructions.md)
+1. [Security and OWASP Guidelines](https://github.com/github/awesome-copilot/blob/main/instructions/security-and-owasp.instructions.md)
+1. [Containerization & Docker Best Practices](https://github.com/github/awesome-copilot/blob/main/instructions/containerization-docker-best-practices.instructions.md)
+1. [DevOps Core Principles](https://github.com/github/awesome-copilot/blob/main/instructions/devops-core-principles.instructions.md)
+
+> About the last one, I didn't actually add it. It's not a code generation rules. Good learning source though.
 
 ### [Structural Documentation System](https://www.reddit.com/r/cursor/comments/1kl1wvo/comment/mryvex4/)
+
+> [!NOTE]
+>
+> This is very similar to a [Memory Bank](https://github.com/github/awesome-copilot/blob/main/instructions/memory-bank.instructions.md). Using RIPER-5 Sigma Lite or Cline Memory Bank is better.
 
 > [!WARNING]
 >
 > This framework increase your input tokens in exchange for unquantifiable performance boost. Make sure you design an empirical test.
 
-- Product Requirements Document (PRD): define the "what", "for who", "customer's pain", project scope.
-- App Flow Document: chart the user path, breakdown step-by-step of the whole user journey. Be painstalking specific.
-- Tech Stack Document: specify frameworks, APIs, auth tools, SDKs, ... and their relevant documentation. Eliminate LLM generating "fake libraries".
-- Frontend Structure Document: specify design system (color palette, fonts, spacing, preferred UI patterns, ...).
-- Backend Structure Document: define database schemas (tables, relationships, ...), storage rules, authentication flows. Create hundreds of clear, distinct steps where each step serves as a direct prompt for LLM agents.
-- Implementation Plan: features, bug fixex, ... in GitHub Issues.
-- Project Status: Time Plan with clear timelines and deliverables. Set daily plans for months so the agent understands priority tasks and due dates.
+- **Product Requirements Document (PRD):** define the "what", "for who", "customer's pain", project scope.
+- **App Flow Document:** chart the user path, breakdown step-by-step of the whole user journey. Be painstalking specific.
+- **Tech Stack Document:** specify frameworks, APIs, auth tools, SDKs, ... and their relevant documentation. Eliminate LLM generating "fake libraries".
+- **Frontend Structure Document:** specify design system (color palette, fonts, spacing, preferred UI patterns, ...).
+- **Backend Structure Document:** define database schemas (tables, relationships, ...), storage rules, authentication flows. Create hundreds of clear, distinct steps where each step serves as a direct prompt for LLM agents.
+- **Implementation Plan:** features, bug fixex, ... in GitHub Issues.
+- **Project Status:** Time Plan with clear timelines and deliverables. Set daily plans for months so the agent understands priority tasks and due dates.
 
 Automate generating these files with https://github.com/rohitg00/CreateMVP
 
 Example prompt: `follow #file:prd.md #file:backend.md #file:frontend.md to create an app, maintain the #file:flow.md similarly, check for #file:status.md.`
 
-Works well when the PRD and Project Status are updated regularly.
+Works well when the PRD and Project Status are updated manually and regularly.
 
 ### [kleosr/Cursorkleosr](https://github.com/kleosr/cursorkleosr)
 
@@ -1533,3 +1445,4 @@ Tips:
 - [Simon Willison's Blog "Claude 3.7 Sonnet, extended thinking and long output, llm-anthropic 0.14"](https://simonwillison.net/2025/Feb/25/llm-anthropic-014/)
 - [Simon Willison's Gist "Extended Output Capabilities testing"](https://gist.github.com/simonw/854474b050b630144beebf06ec4a2f52)
 - [GitHub Docs's "Prompt engineering for Copilot Chat"](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/prompt-engineering-for-copilot-chat)
+- [OpenAI Cookbook - GPT-4.1 Prompting Guide](https://cookbook.openai.com/examples/gpt4-1_prompting_guide)
